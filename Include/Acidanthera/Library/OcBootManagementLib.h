@@ -782,6 +782,100 @@ EFI_STATUS
   );
 
 /**
+  Roles of the text the options editor puts on its canvas.
+**/
+typedef enum {
+  OcEditorRoleNormal,
+  OcEditorRoleSelected,
+  OcEditorRoleTitle,
+  OcEditorRoleChanged,
+  OcEditorRoleError,
+  OcEditorRoleHint,
+  OcEditorRoleMax
+} OC_EDITOR_ROLE;
+
+#define OC_EDITOR_CANVAS_REVISION  1
+
+typedef struct OC_EDITOR_CANVAS_ OC_EDITOR_CANVAS;
+
+/**
+  Take over the screen for the options editor.
+
+  @param[in]   This     Canvas.
+  @param[out]  Columns  Columns of text the canvas holds.
+  @param[out]  Rows     Rows of text the canvas holds.
+
+  @retval EFI_SUCCESS  The canvas is in use until End is called.
+  @retval other        The canvas cannot be used; the editor uses the console.
+**/
+typedef
+EFI_STATUS
+(EFIAPI *OC_EDITOR_CANVAS_BEGIN)(
+  IN  OC_EDITOR_CANVAS  *This,
+  OUT UINTN             *Columns,
+  OUT UINTN             *Rows
+  );
+
+/**
+  Give the screen back.
+**/
+typedef
+VOID
+(EFIAPI *OC_EDITOR_CANVAS_END)(
+  IN  OC_EDITOR_CANVAS  *This
+  );
+
+/**
+  Make every cell an empty one of the normal role.
+**/
+typedef
+VOID
+(EFIAPI *OC_EDITOR_CANVAS_CLEAR)(
+  IN  OC_EDITOR_CANVAS  *This
+  );
+
+/**
+  Put text into the cells of a row, starting at a column, cut at the last column.
+
+  @param[in]  This    Canvas.
+  @param[in]  Column  First column.
+  @param[in]  Row     Row.
+  @param[in]  Role    OC_EDITOR_ROLE of the text.
+  @param[in]  Text    Text, printable ASCII.
+**/
+typedef
+VOID
+(EFIAPI *OC_EDITOR_CANVAS_PUT)(
+  IN  OC_EDITOR_CANVAS  *This,
+  IN  UINTN             Column,
+  IN  UINTN             Row,
+  IN  UINTN             Role,
+  IN  CONST CHAR16      *Text
+  );
+
+/**
+  Show what has been put since the last flush. Called before waiting for a key.
+**/
+typedef
+VOID
+(EFIAPI *OC_EDITOR_CANVAS_FLUSH)(
+  IN  OC_EDITOR_CANVAS  *This
+  );
+
+/**
+  A screen the options editor can draw on instead of the console, offered by a
+  graphical picker (OpenCanopy draws it as a sheet over its background).
+**/
+struct OC_EDITOR_CANVAS_ {
+  UINT32                    Revision;
+  OC_EDITOR_CANVAS_BEGIN    Begin;
+  OC_EDITOR_CANVAS_END      End;
+  OC_EDITOR_CANVAS_CLEAR    Clear;
+  OC_EDITOR_CANVAS_PUT      Put;
+  OC_EDITOR_CANVAS_FLUSH    Flush;
+};
+
+/**
   Get label contents (e.g. '.disk_label' or '.disk_label_2x').
 **/
 typedef
@@ -1142,6 +1236,10 @@ struct OC_PICKER_CONTEXT_ {
   // Custom boot paths (bless override).  Must start with '\'.
   //
   CHAR16                      **CustomBootPaths;
+  //
+  // Screen for the options editor offered by the picker, optional. NULL for the console.
+  //
+  OC_EDITOR_CANVAS            *EditorCanvas;
   //
   // Number of absolute custom entries.
   //

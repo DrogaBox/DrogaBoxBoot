@@ -44,6 +44,7 @@
   Views/Common.c
   Views/BootPicker.c
   Views/Password.c
+  Views/EditorCanvas.c
 
 [Packages]
   OpenCorePkg/OpenCorePkg.dec

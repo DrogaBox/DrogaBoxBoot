@@ -41,6 +41,7 @@
 
 extern BOOT_PICKER_GUI_CONTEXT  mGuiContext;
 extern GUI_OBJ_CHILD            mCommonActionButtonsContainer;
+extern OC_EDITOR_CANVAS         mEditorCanvas;
 
 EFI_STATUS
 InternalContextConstruct (
@@ -185,7 +186,7 @@ Snapshot (
   fwrite (mFrame, sizeof (*mFrame), (size_t)mWidth * mHeight, File);
   fclose (File);
   printf ("snapshot %s\n", Path);
-  if (getenv ("CANOPY_DEBUG") != NULL) {
+  if ((getenv ("CANOPY_DEBUG") != NULL) && (mGuiContext.PickerContext != NULL)) {
     printf (
       "  ease-in %d, attributes 0x%x, scale %u, zoom %d; action buttons: opacity %u at %d,%d size %ux%u\n",
       mGuiContext.UseMenuEaseIn,
@@ -591,6 +592,8 @@ Usage (
     "  -n N        number of entries (4, up to %u)\n"
     "  -t S        timeout seconds (0)\n"
     "  -a A        PickerAttributes (17)\n"
+    "  -replay F   draw the editor canvas log F (PICKER_TEST_CANVAS of TestPickerEditor) instead\n"
+    "  -pick L     with -replay, save only the screens in the list L (0,3,7), default all\n"
     "script items: wait:N  snap  right  left  enter  esc  f2  end   (default: wait:90 snap end)\n",
     (unsigned)ARRAY_SIZE (mSampleEntries)
     );
@@ -616,6 +619,103 @@ AddStep (
   ++mScriptCount;
 }
 
+/**
+  Draw a log of the editor harness (PICKER_TEST_CANVAS) with the real canvas of OpenCanopy,
+  saving the screen at the flushes listed in Pick ("all" or comma separated numbers).
+**/
+STATIC
+int
+ReplayCanvas (
+  IN CONST char  *LogPath,
+  IN CONST char  *Pick
+  )
+{
+  FILE      *Log;
+  char      Line[1024];
+  UINT32    Flushes;
+  UINTN     Columns;
+  UINTN     Rows;
+  unsigned  Col;
+  unsigned  Row;
+  unsigned  Role;
+  int       Used;
+  CHAR16    Text[512];
+  UINTN     Index;
+  char      Want[32];
+  BOOLEAN   Begun;
+
+  Log = fopen (LogPath, "r");
+  if (Log == NULL) {
+    printf ("FAIL: cannot read %s\n", LogPath);
+    return 1;
+  }
+
+  Flushes = 0;
+  Begun   = FALSE;
+  while (fgets (Line, sizeof (Line), Log) != NULL) {
+    Line[strcspn (Line, "\n")] = '\0';
+    if (Line[0] == 'B') {
+      //
+      // A session of the harness that ended with a (simulated) restart has no E.
+      //
+      if (Begun) {
+        mEditorCanvas.End (&mEditorCanvas);
+      }
+
+      if (EFI_ERROR (mEditorCanvas.Begin (&mEditorCanvas, &Columns, &Rows))) {
+        printf ("FAIL: canvas Begin failed\n");
+        return 1;
+      }
+
+      Begun = TRUE;
+      if (strcmp (Line + 2, "80 26") != 0) {
+        printf ("note: log made for %s, canvas is %u %u\n", Line + 2, (unsigned)Columns, (unsigned)Rows);
+      }
+    } else if (!Begun) {
+      continue;
+    } else if (Line[0] == 'C') {
+      mEditorCanvas.Clear (&mEditorCanvas);
+    } else if (Line[0] == 'P') {
+      //
+      // The text starts right after the fourth space, leading spaces included.
+      //
+      if (sscanf (Line, "P %u %u %u", &Col, &Row, &Role) != 3) {
+        printf ("FAIL: bad line %s\n", Line);
+        return 1;
+      }
+
+      Used = 0;
+      for (Index = 0; Line[Used] != '\0' && Index < 4; ++Used) {
+        if (Line[Used] == ' ') {
+          ++Index;
+        }
+      }
+
+      for (Index = 0; Line[Used + Index] != '\0' && Index + 1 < ARRAY_SIZE (Text); ++Index) {
+        Text[Index] = (CHAR16)(UINT8)Line[Used + Index];
+      }
+
+      Text[Index] = CHAR_NULL;
+      mEditorCanvas.Put (&mEditorCanvas, Col, Row, Role, Text);
+    } else if (Line[0] == 'F') {
+      mEditorCanvas.Flush (&mEditorCanvas);
+      snprintf (Want, sizeof (Want), ",%u,", Flushes);
+      if ((strcmp (Pick, "all") == 0) || (strstr (Pick, Want) != NULL)) {
+        Snapshot ();
+      }
+
+      ++Flushes;
+    } else if (Line[0] == 'E') {
+      mEditorCanvas.End (&mEditorCanvas);
+      Begun = FALSE;
+    }
+  }
+
+  fclose (Log);
+  printf ("replayed %u screens\n", Flushes);
+  return 0;
+}
+
 int
 ENTRY_POINT (
   int   argc,
@@ -634,6 +734,8 @@ ENTRY_POINT (
   UINT32                     Wait;
   UINT32                     Index;
   int                        Arg;
+  CONST char                 *ReplayLog;
+  char                       ReplayPick[256];
 
   setvbuf (stdout, NULL, _IONBF, 0);
 
@@ -648,6 +750,8 @@ ENTRY_POINT (
   Timeout    = 0;
   Attributes = 17;
   Wait       = 0;
+  ReplayLog  = NULL;
+  AsciiStrCpyS (ReplayPick, sizeof (ReplayPick), "all");
 
   for (Arg = 4; Arg < argc; ++Arg) {
     if ((strcmp (argv[Arg], "-w") == 0) && (Arg + 1 < argc)) {
@@ -682,6 +786,10 @@ ENTRY_POINT (
     } else if (strcmp (argv[Arg], "f2") == 0) {
       AddStep (Wait, StepKey, OC_INPUT_FUNCTIONAL (2));
       Wait = 0;
+    } else if ((strcmp (argv[Arg], "-replay") == 0) && (Arg + 1 < argc)) {
+      ReplayLog = argv[++Arg];
+    } else if ((strcmp (argv[Arg], "-pick") == 0) && (Arg + 1 < argc)) {
+      snprintf (ReplayPick, sizeof (ReplayPick), ",%s,", argv[++Arg]);
     } else if (strcmp (argv[Arg], "end") == 0) {
       AddStep (Wait, StepEnd, 0);
       Wait = 0;
@@ -719,6 +827,10 @@ ENTRY_POINT (
   if (EFI_ERROR (Status)) {
     printf ("FAIL: OpenCanopy context - %s\n", Status == EFI_UNSUPPORTED ? "unsupported (theme or font)" : "error");
     return 1;
+  }
+
+  if (ReplayLog != NULL) {
+    return ReplayCanvas (ReplayLog, strcmp (ReplayPick, ",all,") == 0 ? "all" : ReplayPick);
   }
 
   for (Index = 0; Index < Count; ++Index) {

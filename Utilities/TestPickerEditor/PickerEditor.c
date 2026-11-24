@@ -1153,6 +1153,95 @@ OcProcessVariableGuid (
 STATIC UINT8                            *mSample;
 STATIC UINT32                           mSampleSize;
 STATIC OC_PICKER_CONTEXT                *mPicker;
+
+//
+// A canvas which writes what the editor draws to a file (PICKER_TEST_CANVAS=<file>), for
+// Utilities/TestCanopy to draw with the real canvas of OpenCanopy: B cols rows, C, P col row role text, F, E.
+//
+#define LOG_CANVAS_COLUMNS  80U
+#define LOG_CANVAS_ROWS     26U
+
+STATIC FILE  *mCanvasLog;
+
+STATIC
+EFI_STATUS
+EFIAPI
+LogCanvasBegin (
+  IN  OC_EDITOR_CANVAS  *This,
+  OUT UINTN             *Columns,
+  OUT UINTN             *Rows
+  )
+{
+  *Columns = LOG_CANVAS_COLUMNS;
+  *Rows    = LOG_CANVAS_ROWS;
+  fprintf (mCanvasLog, "B %u %u\n", LOG_CANVAS_COLUMNS, LOG_CANVAS_ROWS);
+  return EFI_SUCCESS;
+}
+
+STATIC
+VOID
+EFIAPI
+LogCanvasEnd (
+  IN  OC_EDITOR_CANVAS  *This
+  )
+{
+  fprintf (mCanvasLog, "E\n");
+}
+
+STATIC
+VOID
+EFIAPI
+LogCanvasClear (
+  IN  OC_EDITOR_CANVAS  *This
+  )
+{
+  fprintf (mCanvasLog, "C\n");
+}
+
+STATIC
+VOID
+EFIAPI
+LogCanvasPut (
+  IN  OC_EDITOR_CANVAS  *This,
+  IN  UINTN             Column,
+  IN  UINTN             Row,
+  IN  UINTN             Role,
+  IN  CONST CHAR16      *Text
+  )
+{
+  UINTN  Index;
+
+  if ((Column >= LOG_CANVAS_COLUMNS) || (Row >= LOG_CANVAS_ROWS) || (Role >= OcEditorRoleMax)) {
+    printf ("FAIL: canvas put outside: col %u row %u role %u\n", (unsigned)Column, (unsigned)Row, (unsigned)Role);
+    ++mFailures;
+  }
+
+  fprintf (mCanvasLog, "P %u %u %u ", (unsigned)Column, (unsigned)Row, (unsigned)Role);
+  for (Index = 0; Text[Index] != CHAR_NULL; ++Index) {
+    fputc (Text[Index] >= 0x20 && Text[Index] < 0x7F ? (char)Text[Index] : '?', mCanvasLog);
+  }
+
+  fputc ('\n', mCanvasLog);
+}
+
+STATIC
+VOID
+EFIAPI
+LogCanvasFlush (
+  IN  OC_EDITOR_CANVAS  *This
+  )
+{
+  fprintf (mCanvasLog, "F\n");
+}
+
+STATIC OC_EDITOR_CANVAS  mLogCanvas = {
+  OC_EDITOR_CANVAS_REVISION,
+  LogCanvasBegin,
+  LogCanvasEnd,
+  LogCanvasClear,
+  LogCanvasPut,
+  LogCanvasFlush
+};
 STATIC OC_STORAGE_CONTEXT               mStorage;
 STATIC OC_HOTKEY_CONTEXT                mHotKeys;
 STATIC EFI_SIMPLE_FILE_SYSTEM_PROTOCOL  mFileSystem;
@@ -1570,7 +1659,7 @@ TestEscapeOnly (
   ScriptReset ();
   Press (KeyEsc, 1);
   RUN_EDITOR (NULL);
-  CHECK (SeenOnScreen ("OpenCore Options"));
+  CHECK (SeenOnScreen ("DrogaBoxBoot Options"));
   CHECK (SeenOnScreen ("Highlighted entry: macOS Test"));
   CHECK (SeenOnScreen ("Boot arguments:  (not set)"));
   CHECK (SeenOnScreen ("Edit config.plist"));
@@ -1593,7 +1682,7 @@ TestPrivilege (
   Status             = mPicker->ShowEditor (mPicker, &mEntry);
   CHECK (Status == EFI_ABORTED);
   CHECK (mPrivilegeRequests == 1);
-  CHECK (!SeenOnScreen ("OpenCore Options"));
+  CHECK (!SeenOnScreen ("DrogaBoxBoot Options"));
   mPrivilegeResult = EFI_SUCCESS;
 }
 
@@ -4636,8 +4725,22 @@ ENTRY_POINT (
   mPrivilegeResult = EFI_SUCCESS;
 
   if (getenv ("PICKER_TEST_SHOW") != NULL) {
+    if (getenv ("PICKER_TEST_CANVAS") != NULL) {
+      mCanvasLog = fopen (getenv ("PICKER_TEST_CANVAS"), "w");
+      if (mCanvasLog == NULL) {
+        printf ("FAIL: cannot write %s\n", getenv ("PICKER_TEST_CANVAS"));
+        return 1;
+      }
+
+      mPicker->EditorCanvas = &mLogCanvas;
+    }
+
     ShowScreens ();
-    return 0;
+    if (mCanvasLog != NULL) {
+      fclose (mCanvasLog);
+    }
+
+    return mFailures == 0 ? 0 : 1;
   }
 
   if (getenv ("PICKER_TEST_KEXTS") != NULL) {

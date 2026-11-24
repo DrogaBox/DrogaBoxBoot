@@ -15,6 +15,7 @@ OpenCore Changelog
 - Added source ranges of parsed elements to OcXmlLib (`XmlNodeSourceRange`)
 - Added 1.5x drawing of OpenCanopy on screens of about 1080p (2x images shrunk on output), with `OC_ATTR_NO_ZOOM` (`0x0400`) in `PickerAttributes` to keep scale 1
 - Added a line of help with the countdown under the entries, names under the restart and shut down buttons, and the project name to OpenCanopy
+- Added `EditorCanvas` to the picker context: OpenCanopy draws the options editor on a sheet over its background instead of switching to text mode
 
 #### v1.0.8
 - Fixed macrecovery utility on Windows, thx @pzhlkj6612

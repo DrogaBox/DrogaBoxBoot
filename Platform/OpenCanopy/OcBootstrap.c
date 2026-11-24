@@ -38,6 +38,7 @@
 #define DEFAULT_CURSOR_OFFSET_Y  112U
 
 extern BOOT_PICKER_GUI_CONTEXT  mGuiContext;
+extern OC_EDITOR_CANVAS         mEditorCanvas;
 
 STATIC GUI_DRAWING_CONTEXT              mDrawContext;
 STATIC EFI_CONSOLE_CONTROL_SCREEN_MODE  mPreviousMode;
@@ -225,7 +226,8 @@ OcShowMenuByOc (
 
   if (mGuiContext.EditRequested) {
     //
-    // The GUI has been torn down by now, so the text mode editor can use the console.
+    // The GUI has been torn down by now; the editor draws on its sheet (mEditorCanvas),
+    // or uses the console if the sheet cannot be shown.
     // The menu is shown anew afterwards, which is requested explicitly and not through Refresh,
     // as the editor may ask for a password, which makes use of this very GUI context.
     //
@@ -329,6 +331,10 @@ GuiOcInterfacePopulate (
 
   Context->ShowMenu         = OcShowMenuByOc;
   Context->RequestPrivilege = OcShowPasswordByOc;
+  //
+  // The options editor draws on a sheet of this GUI instead of switching to text mode.
+  //
+  Context->EditorCanvas = &mEditorCanvas;
 
   return EFI_SUCCESS;
 }

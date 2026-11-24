@@ -4557,7 +4557,7 @@ EdMainMenu (
       AsciiSPrint (Subtitle, sizeof (Subtitle), "Highlighted entry: %a", Name);
     }
 
-    EdUiTitle (Ui, "OpenCore Options", Subtitle);
+    EdUiTitle (Ui, "DrogaBoxBoot Options", Subtitle);
 
     Count = 0;
 

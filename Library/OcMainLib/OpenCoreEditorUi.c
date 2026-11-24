@@ -35,7 +35,51 @@ EdUiInit (
 
   ZeroMem (Ui, sizeof (*Ui));
 
-  if ((gST->ConOut == NULL) || (Picker->HotKeyContext == NULL)) {
+  if (Picker->HotKeyContext == NULL) {
+    return EFI_NOT_READY;
+  }
+
+  //
+  // A graphical picker may offer its own screen; the console is used otherwise.
+  //
+  if ((Picker->EditorCanvas != NULL) && (Picker->EditorCanvas->Revision >= OC_EDITOR_CANVAS_REVISION)) {
+    Status = Picker->EditorCanvas->Begin (Picker->EditorCanvas, &Columns, &Rows);
+    if (!EFI_ERROR (Status) && ((Columns < ED_UI_MIN_COLUMNS) || (Rows < ED_UI_MIN_ROWS))) {
+      Picker->EditorCanvas->End (Picker->EditorCanvas);
+      Status = EFI_UNSUPPORTED;
+    }
+
+    if (!EFI_ERROR (Status)) {
+      Ui->Scratch = AllocatePool ((Columns + 1) * sizeof (CHAR16));
+      if (Ui->Scratch == NULL) {
+        Picker->EditorCanvas->End (Picker->EditorCanvas);
+        return EFI_OUT_OF_RESOURCES;
+      }
+
+      Ui->Canvas       = Picker->EditorCanvas;
+      Ui->Picker       = Picker;
+      Ui->Columns      = Columns;
+      Ui->Rows         = Rows;
+      Ui->AttrNormal   = OcEditorRoleNormal;
+      Ui->AttrSelected = OcEditorRoleSelected;
+      Ui->AttrTitle    = OcEditorRoleTitle;
+      Ui->AttrChanged  = OcEditorRoleChanged;
+      Ui->AttrError    = OcEditorRoleError;
+      Ui->AttrHint     = OcEditorRoleHint;
+
+      Ui->Key.OcKeyCode   = OC_INPUT_NO_ACTION;
+      Ui->Key.OcModifiers = OC_MODIFIERS_NONE;
+      Ui->Key.UnicodeChar = CHAR_NULL;
+
+      Picker->HotKeyContext->FlushTypingBuffer (Picker);
+      EdUiClear (Ui);
+      return EFI_SUCCESS;
+    }
+
+    DEBUG ((DEBUG_INFO, "OCE: Picker screen not usable - %r, using the console\n", Status));
+  }
+
+  if (gST->ConOut == NULL) {
     return EFI_NOT_READY;
   }
 
@@ -100,10 +144,15 @@ EdUiDone (
   IN OUT ED_UI  *Ui
   )
 {
-  gST->ConOut->SetAttribute (gST->ConOut, (UINTN)Ui->SavedAttribute);
-  gST->ConOut->ClearScreen (gST->ConOut);
-  gST->ConOut->EnableCursor (gST->ConOut, Ui->SavedCursorVisible);
-  OcConsoleControlSetMode (Ui->SavedMode);
+  if (Ui->Canvas != NULL) {
+    Ui->Canvas->End (Ui->Canvas);
+    Ui->Canvas = NULL;
+  } else {
+    gST->ConOut->SetAttribute (gST->ConOut, (UINTN)Ui->SavedAttribute);
+    gST->ConOut->ClearScreen (gST->ConOut);
+    gST->ConOut->EnableCursor (gST->ConOut, Ui->SavedCursorVisible);
+    OcConsoleControlSetMode (Ui->SavedMode);
+  }
 
   Ui->Picker->HotKeyContext->FlushTypingBuffer (Ui->Picker);
 
@@ -118,8 +167,36 @@ EdUiClear (
   IN ED_UI  *Ui
   )
 {
+  if (Ui->Canvas != NULL) {
+    Ui->Canvas->Clear (Ui->Canvas);
+    return;
+  }
+
   gST->ConOut->SetAttribute (gST->ConOut, Ui->AttrNormal);
   gST->ConOut->ClearScreen (gST->ConOut);
+}
+
+/**
+  Write text at a place, to the console or to the screen of the picker.
+**/
+STATIC
+VOID
+EdUiOutput (
+  IN ED_UI         *Ui,
+  IN UINTN         Col,
+  IN UINTN         Row,
+  IN UINTN         Attr,
+  IN CONST CHAR16  *Text
+  )
+{
+  if (Ui->Canvas != NULL) {
+    Ui->Canvas->Put (Ui->Canvas, Col, Row, Attr, Text);
+    return;
+  }
+
+  gST->ConOut->SetAttribute (gST->ConOut, Attr);
+  gST->ConOut->SetCursorPosition (gST->ConOut, Col, Row);
+  gST->ConOut->OutputString (gST->ConOut, (CHAR16 *)Text);
 }
 
 VOID
@@ -165,9 +242,7 @@ EdUiPut (
 
   Ui->Scratch[Width] = L'\0';
 
-  gST->ConOut->SetAttribute (gST->ConOut, Attr);
-  gST->ConOut->SetCursorPosition (gST->ConOut, Col, Row);
-  gST->ConOut->OutputString (gST->ConOut, Ui->Scratch);
+  EdUiOutput (Ui, Col, Row, Attr, Ui->Scratch);
 }
 
 VOID
@@ -219,6 +294,13 @@ EdUiWaitKeyFiltered (
   IN     OC_PICKER_KEY_MAP  Filter
   )
 {
+  //
+  // The screen of the picker shows what was put only now, before waiting.
+  //
+  if (Ui->Canvas != NULL) {
+    Ui->Canvas->Flush (Ui->Canvas);
+  }
+
   while (TRUE) {
     //
     // Hotkeys of the picker are not wanted here, so they are not enabled.
@@ -509,29 +591,23 @@ EdDrawField (
       //
       // The part before the cursor, the cursor itself, the part after it.
       //
-      gST->ConOut->SetAttribute (gST->ConOut, Ui->AttrNormal);
-      gST->ConOut->SetCursorPosition (gST->ConOut, 0, FirstRow + Row);
       Saved                  = Ui->Scratch[CursorCol];
       Ui->Scratch[CursorCol] = L'\0';
       if (CursorCol > 0) {
-        gST->ConOut->OutputString (gST->ConOut, Ui->Scratch);
+        EdUiOutput (Ui, 0, FirstRow + Row, Ui->AttrNormal, Ui->Scratch);
       }
 
       Ui->Scratch[CursorCol]     = Saved;
       Saved                      = Ui->Scratch[CursorCol + 1];
       Ui->Scratch[CursorCol + 1] = L'\0';
-      gST->ConOut->SetAttribute (gST->ConOut, Ui->AttrSelected);
-      gST->ConOut->OutputString (gST->ConOut, &Ui->Scratch[CursorCol]);
+      EdUiOutput (Ui, CursorCol, FirstRow + Row, Ui->AttrSelected, &Ui->Scratch[CursorCol]);
       Ui->Scratch[CursorCol + 1] = Saved;
 
-      gST->ConOut->SetAttribute (gST->ConOut, Ui->AttrNormal);
       if (CursorCol + 1 < Width) {
-        gST->ConOut->OutputString (gST->ConOut, &Ui->Scratch[CursorCol + 1]);
+        EdUiOutput (Ui, CursorCol + 1, FirstRow + Row, Ui->AttrNormal, &Ui->Scratch[CursorCol + 1]);
       }
     } else {
-      gST->ConOut->SetAttribute (gST->ConOut, Ui->AttrNormal);
-      gST->ConOut->SetCursorPosition (gST->ConOut, 0, FirstRow + Row);
-      gST->ConOut->OutputString (gST->ConOut, Ui->Scratch);
+      EdUiOutput (Ui, 0, FirstRow + Row, Ui->AttrNormal, Ui->Scratch);
     }
   }
 

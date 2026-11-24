@@ -66,6 +66,16 @@ run_canopy() { # sanitize(0/1)
   canopy_check "4K at UIScale 2$tag" "scale 2, zoom 0" 'Auto' "$CANOPY_RES/shot" -n 6 -w 3840 -h 2160 -s 2 wait:90 snap end
   canopy_check "Enter starts the selected entry$tag" "chosen an entry" 'Auto' "$CANOPY_RES/shot" -n 6 -t 5 wait:60 right wait:30 enter
   canopy_check "F2 asks for the editor$tag" "editor shown" 'Auto' "$CANOPY_RES/shot" -n 6 wait:60 f2 wait:10
+  #
+  # The editor on the sheet: every screen of the sample session of the editor harness, drawn
+  # with the canvas of OpenCanopy.
+  #
+  if ( cd "$ROOT/Utilities/TestPickerEditor" && make -j "$JOBS" >/dev/null 2>&1 \
+       && PICKER_TEST_SHOW=1 PICKER_TEST_CANVAS="$CANOPY_RES/canvas.log" ./PickerEditor ../../Docs/Sample.plist >/dev/null 2>&1 ); then
+    canopy_check "editor screens on the sheet$tag" "replayed [1-9][0-9]* screens" 'Auto' "$CANOPY_RES/shot" -replay "$CANOPY_RES/canvas.log" -pick 0
+  else
+    echo "FAIL  TestCanopy editor screens on the sheet$tag: no canvas log"; FAIL=1
+  fi
 }
 
 if [ -n "${OC_RESOURCES:-}" ] && [ -f "$OC_RESOURCES/Font/Font_2x.bin" ]; then

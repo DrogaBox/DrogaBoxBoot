@@ -10,7 +10,7 @@ OBJS    = $(PROJECT).o
 #
 # From OpenCanopy, the code which is tested (input is replaced by Canopy.c, output runs on a fake GOP).
 #
-OBJS   += OpenCanopy.o GuiApp.o OcBootstrap.o BitmapFont.o Images.o Blending.o Common.o BootPicker.o Password.o OutputStGop.o
+OBJS   += OpenCanopy.o GuiApp.o OcBootstrap.o BitmapFont.o Images.o Blending.o Common.o BootPicker.o Password.o EditorCanvas.o OutputStGop.o
 #
 # From OpenCore.
 #

@@ -42,6 +42,10 @@ typedef struct {
   // One row of text.
   //
   CHAR16                             *Scratch;
+  ///
+  /// Screen of the picker in use instead of the console, if any (attributes are OC_EDITOR_ROLE then).
+  ///
+  OC_EDITOR_CANVAS                   *Canvas;
   //
   // State to restore on leaving.
   //
