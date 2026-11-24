@@ -84,14 +84,17 @@ typedef struct {
   CHAR8         Status[128];
   BOOLEAN       StatusIsError;
 } ED_BROWSER;
+
 /**
   Largest Info.plist of a kext that is looked into.
 **/
 #define ED_KEXT_MAX_INFO_SIZE  (1024U * 1024U)
+
 /**
   Most kexts the screen works with. It looks at how the kexts fit together on every change.
 **/
 #define ED_KEXT_MAX_KEXTS  1024U
+
 /**
   An array of dictionaries with Enabled, which the list screen works with.
 **/
@@ -113,6 +116,7 @@ typedef struct {
   BOOLEAN         Dependencies;
   CONST CHAR8     *Explanation;
 } ED_LIST_KIND;
+
 /**
   A kext of Kernel > Add as the kexts screen has it.
 **/
