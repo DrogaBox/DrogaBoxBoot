@@ -4796,7 +4796,7 @@ LookAtEveryScreen (
     //
     CHECK (
       !OnScreenNow ("DrogaBoxBoot Options")
-      || (Items[Index] == MENU_COMPARE) || (Items[Index] == MENU_LOG) || (Items[Index] == MENU_PANIC)
+          || (Items[Index] == MENU_COMPARE) || (Items[Index] == MENU_LOG) || (Items[Index] == MENU_PANIC)
       );
     if (mFailures != Before) {
       printf ("  (console %s, main menu item %u)\n", SizeName, (unsigned)Items[Index]);
