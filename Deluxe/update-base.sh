@@ -107,7 +107,10 @@ if [ "$BUILD" = 1 ]; then
   command -v nasm >/dev/null && command -v mtoc >/dev/null || die "nasm and mtoc must be in PATH"
   # The build wants its own UDK inside the checkout; clone the one of the main checkout (APFS clone, cheap).
   [ -f "$MAIN/UDK/UDK.ready" ] || die "$MAIN/UDK is not ready; do a build there once first"
-  cp -cR "$MAIN/UDK" "$WT/UDK" || die "cannot copy the UDK"
+  cp -pcR "$MAIN/UDK" "$WT/UDK" || die "cannot copy the UDK"
+  # Nothing built in the other checkout may leak into this build: the OpenCore modules are rebuilt from scratch, and the
+  # BaseTools libraries (fat archives, which ar cannot extend) are relinked.
+  rm -rf "$WT/UDK/Build" "$WT/UDK/BaseTools/Source/C/libs"/*.a
   ( cd "$WT" && ARCHS=X64 TARGETS=RELEASE,DEBUG TOOLCHAINS=XCODE5 ./build_oc.tool ) >"$WT/build.log" 2>&1 \
     || { tail -30 "$WT/build.log"; die "the OpenCore build fails on the new base (log: $WT/build.log)"; }
   ls Binaries/*.zip >/dev/null 2>&1 || die "no zip produced"
