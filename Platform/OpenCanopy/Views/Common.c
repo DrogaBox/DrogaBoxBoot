@@ -861,8 +861,8 @@ CommonViewInitialize (
   InternalCommonMakeLabel (&mCommonRestartLabel, GuiContext, L"Restart");
   InternalCommonMakeLabel (&mCommonShutDownLabel, GuiContext, L"Shut Down");
 
-  mCommonActionButtonsContainer.Obj.Width   = RestartWidth + ShutDownWidth + BOOT_ACTION_BUTTON_SPACE * GuiContext->Scale;
-  mCommonActionButtonsContainer.Obj.Height  = MAX (RestartHeight, ShutDownHeight);
+  mCommonActionButtonsContainer.Obj.Width  = RestartWidth + ShutDownWidth + BOOT_ACTION_BUTTON_SPACE * GuiContext->Scale;
+  mCommonActionButtonsContainer.Obj.Height = MAX (RestartHeight, ShutDownHeight);
 
   //
   // The names go under the buttons; widen the container if a name is wider than its button.

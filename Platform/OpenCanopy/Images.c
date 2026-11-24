@@ -373,8 +373,8 @@ GuiCreateScaledImage (
       P10   = &SourceImage->Buffer[NextY * SourceImage->Width + SrcX];
       P11   = &SourceImage->Buffer[NextY * SourceImage->Width + NextX];
       for (Channel = 0; Channel < 4; ++Channel) {
-        Top    = ((CONST UINT8 *)P00)[Channel] * (256 - FracX) + ((CONST UINT8 *)P01)[Channel] * FracX;
-        Bottom = ((CONST UINT8 *)P10)[Channel] * (256 - FracX) + ((CONST UINT8 *)P11)[Channel] * FracX;
+        Top                                               = ((CONST UINT8 *)P00)[Channel] * (256 - FracX) + ((CONST UINT8 *)P01)[Channel] * FracX;
+        Bottom                                            = ((CONST UINT8 *)P10)[Channel] * (256 - FracX) + ((CONST UINT8 *)P11)[Channel] * FracX;
         ((UINT8 *)&Buffer[(UINTN)Y * Width + X])[Channel] = (UINT8)((Top * (256 - FracY) + Bottom * FracY + 32768) >> 16);
       }
     }

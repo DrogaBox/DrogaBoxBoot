@@ -1075,7 +1075,7 @@ GuiDrawLoop (
   mNumValidDrawReqs                  = 0;
   DrawContext->FrameTime             = 0;
   DrawContext->TimeOutElapsedSeconds = 0;
-  HoldObject             = NULL;
+  HoldObject                         = NULL;
   //
   // Clear previous inputs.
   //

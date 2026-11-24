@@ -146,18 +146,18 @@ InitGop (
   VOID
   )
 {
-  mFrame                         = calloc ((size_t)mWidth * mHeight, sizeof (*mFrame));
-  mGopInfo.HorizontalResolution  = mWidth;
-  mGopInfo.VerticalResolution    = mHeight;
-  mGopInfo.PixelFormat           = PixelBlueGreenRedReserved8BitPerColor;
-  mGopInfo.PixelsPerScanLine     = mWidth;
-  mGopMode.MaxMode               = 1;
-  mGopMode.Info                  = &mGopInfo;
-  mGopMode.SizeOfInfo            = sizeof (mGopInfo);
-  mGop.Mode                      = &mGopMode;
-  mGop.Blt                       = FakeGopBlt;
-  gST->ConsoleOutHandle          = (EFI_HANDLE)&mGop;
-  gBS->HandleProtocol            = FakeHandleProtocol;
+  mFrame                        = calloc ((size_t)mWidth * mHeight, sizeof (*mFrame));
+  mGopInfo.HorizontalResolution = mWidth;
+  mGopInfo.VerticalResolution   = mHeight;
+  mGopInfo.PixelFormat          = PixelBlueGreenRedReserved8BitPerColor;
+  mGopInfo.PixelsPerScanLine    = mWidth;
+  mGopMode.MaxMode              = 1;
+  mGopMode.Info                 = &mGopInfo;
+  mGopMode.SizeOfInfo           = sizeof (mGopInfo);
+  mGop.Mode                     = &mGopMode;
+  mGop.Blt                      = FakeGopBlt;
+  gST->ConsoleOutHandle         = (EFI_HANDLE)&mGop;
+  gBS->HandleProtocol           = FakeHandleProtocol;
 }
 
 STATIC
@@ -271,10 +271,10 @@ typedef enum {
 } STEP_KIND;
 
 typedef struct {
-  UINT32       Wait;   ///< Key polls to let pass first (each poll is one frame of the draw loop).
-  STEP_KIND    Kind;
-  OC_KEY_CODE  Key;
-  CHAR16       Char;
+  UINT32         Wait; ///< Key polls to let pass first (each poll is one frame of the draw loop).
+  STEP_KIND      Kind;
+  OC_KEY_CODE    Key;
+  CHAR16         Char;
 } STEP;
 
 STATIC STEP    mScript[64];
@@ -495,7 +495,6 @@ FakeShowEditor (
   return EFI_SUCCESS;
 }
 
-
 //
 // Not reached in the harness, or nothing to do on the host.
 //
@@ -571,12 +570,12 @@ typedef struct {
 } SAMPLE_ENTRY;
 
 STATIC CONST SAMPLE_ENTRY  mSampleEntries[] = {
-  { L"macOS",        "Apple12:Apple",                     OC_BOOT_APPLE_OS           },
-  { L"Recovery",     "AppleRecv:Apple",                   OC_BOOT_APPLE_RECOVERY     },
-  { L"Windows",      "Windows",                           OC_BOOT_WINDOWS            },
-  { L"Clean NVRAM",  "ResetNVRAM:NVRAMTool",              OC_BOOT_EXTERNAL_TOOL      },
-  { L"UEFI Shell",   "UEFIShell:Shell",                   OC_BOOT_EXTERNAL_TOOL      },
-  { L"Reset NVRAM",  "ResetNVRAM:NVRAMTool",              OC_BOOT_SYSTEM             },
+  { L"macOS",       "Apple12:Apple",        OC_BOOT_APPLE_OS       },
+  { L"Recovery",    "AppleRecv:Apple",      OC_BOOT_APPLE_RECOVERY },
+  { L"Windows",     "Windows",              OC_BOOT_WINDOWS        },
+  { L"Clean NVRAM", "ResetNVRAM:NVRAMTool", OC_BOOT_EXTERNAL_TOOL  },
+  { L"UEFI Shell",  "UEFIShell:Shell",      OC_BOOT_EXTERNAL_TOOL  },
+  { L"Reset NVRAM", "ResetNVRAM:NVRAMTool", OC_BOOT_SYSTEM         },
 };
 
 STATIC
@@ -702,7 +701,7 @@ ENTRY_POINT (
     return 2;
   }
 
-  gRT->GetVariable  = FakeGetVariable;
+  gRT->GetVariable = FakeGetVariable;
   InitGop ();
   gBS->LocateProtocol = FakeLocateProtocol;
 
