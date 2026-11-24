@@ -1258,8 +1258,8 @@ InternalBootPickerViewKeyEvent (
   }
 
   //
-  // F2 opens the (text mode) options editor, which cannot run on top of the GUI,
-  // so the menu is left here and the editor is run by the caller.
+  // F2 opens the options editor. The menu is left here and the caller runs the editor,
+  // on the sheet over the picker if there is one, or on the text console.
   //
   if (  (KeyEvent->OcKeyCode == OC_INPUT_FUNCTIONAL (2))
      && (Context->PickerContext->ShowEditor != NULL))

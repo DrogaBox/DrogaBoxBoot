@@ -16,8 +16,9 @@ keys are the same either way. `Esc` goes back to the picker.
 The pictures further down are of the text console.
 
 - With `EnablePassword` set, the editor asks for the OpenCore password first.
-- With the vault on (`Vault` = `Secure`), the configuration cannot be changed, since it would no longer match the
-  vault. Only `config.plist` can be used, because the other files are not in the vault.
+- With a vault (`vault.plist`, as `Vault` = `Basic` and `Secure` use), the configuration cannot be changed,
+  since it would no longer match the vault. Only `config.plist` can be used, because the other files are not
+  in the vault.
 - The non-boolean values of `Misc > Security` (`Vault`, `ScanPolicy`, …) can never be changed from the editor.
   A mistake there can stop OpenCore from starting.
 
