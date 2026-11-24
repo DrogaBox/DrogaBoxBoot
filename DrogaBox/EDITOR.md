@@ -7,8 +7,13 @@ short form, with pictures.
 ## Turning it on
 
 `Misc > Security > AllowPickerEdit` = `true`. Then press `F2` in the picker, either the builtin text picker or
-OpenCanopy. With OpenCanopy the graphical picker closes and the editor opens in text mode. `Esc` goes back to
-the picker.
+OpenCanopy. With OpenCanopy the editor opens on a sheet over the dimmed picker, in the font of the theme
+(below); with the builtin picker, or if the sheet cannot be shown, it uses the text console. The screens and
+keys are the same either way. `Esc` goes back to the picker.
+
+![The editor on the OpenCanopy sheet](screenshots/sheet-menu.png)
+
+The pictures further down are of the text console.
 
 - With `EnablePassword` set, the editor asks for the OpenCore password first.
 - With the vault on (`Vault` = `Secure`), the configuration cannot be changed, since it would no longer match the

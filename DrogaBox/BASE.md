@@ -23,7 +23,8 @@ pinned_on:       2026-11-24
    `config*.plist` chooser, the kexts screen, and the host tests `Utilities/TestPickerEditor` and
    `Utilities/TestEditPlist`. They were cherry-picked, so their hashes differ from the fork's. The only
    conflict was `Changelog.md`, resolved by keeping both sides.
-2. Our commits after that: this folder (`DrogaBox/`), `.github/README.md`, and whatever follows.
+2. Our commits after that: this folder (`DrogaBox/`), `.github/README.md`, the 1.5x picker, the editor
+   sheet and the help line in OpenCanopy, `Utilities/TestCanopy`, and whatever follows.
 
 ## What is in this folder
 
@@ -31,10 +32,11 @@ pinned_on:       2026-11-24
 |---|---|
 | `BASE.md` | This file: the pinned official commit |
 | `update-base.sh` | Moves `main` onto a newer official commit (see below) |
-| `run-tests.sh` | Builds and runs the editor tests, plain and with `SANITIZE=1` |
-| `make-screenshots.sh` | Regenerates `screenshots/01…07` from the real editor code |
+| `run-tests.sh` | Builds and runs the editor tests and the OpenCanopy host tests, plain and with `SANITIZE=1` |
+| `make-screenshots.sh` | Regenerates `screenshots/` from the real code: the text mode editor, and with `OC_RESOURCES` the OpenCanopy picker and the editor sheet |
 | `EDITOR.md` | The user guide of the `F2` editor |
-| `screenshots/` | Images for the README and the guide. `preview-*.png` are design previews, not screenshots |
+| `screenshots/` | Images for the README and the guide |
+| `Theme/AETHER` | The default theme, packaged into the zip (see `Theme/README.md`) |
 | `tools/` | `render-screen.swift` (text console to PNG) and `banner.swift` (README banner) |
 
 ## Moving to a newer official commit

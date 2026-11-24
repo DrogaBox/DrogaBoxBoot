@@ -9,6 +9,10 @@
 # kexts whose Info.plist files declare the usual Lilu dependencies, and Lilu moved after
 # WhateverGreen so that the order check has something to show.
 #
+# With OC_RESOURCES set to a Resources folder holding Font/ (the font of OcBinaryData), it also draws
+# the OpenCanopy picker and the editor sheet with the real code (Utilities/TestCanopy):
+# picker.png, sheet-menu.png, sheet-config.png, sheet-files.png.
+#
 # Needs the UDK (UDK_PATH, ../UDK by default) and swiftc. Touches no EFI.
 #
 set -eu
@@ -63,7 +67,7 @@ def nth(title, n=0, skip_first=0):
     hits = [s for s in session if s.split('\n')[0].strip() == title]
     return hits[n]
 want = {
-    '01-options': nth('OpenCore Options', 0),
+    '01-options': nth('DrogaBoxBoot Options', 0),
     '02-boot-flags': nth('Boot flags', 0),
     '03-edit-config': nth('Edit config.plist', 14),
     '04-kexts-wrong-order': kexts[0],
@@ -80,4 +84,26 @@ mkdir -p DrogaBox/screenshots
 for f in "$TMP"/0*.txt; do
   "$TMP/render" "$f" "DrogaBox/screenshots/$(basename "$f" .txt).png"
 done
+
+if [ -n "${OC_RESOURCES:-}" ] && [ -f "$OC_RESOURCES/Font/Font_2x.bin" ]; then
+  RES="$TMP/res"
+  mkdir -p "$RES/Resources/Image/DrogaBox"
+  cp -R "$OC_RESOURCES/Font" "$RES/Resources/"
+  cp -R DrogaBox/Theme/AETHER "$RES/Resources/Image/DrogaBox/"
+  ( cd Utilities/TestPickerEditor && make -j "$(getconf _NPROCESSORS_ONLN)" >/dev/null \
+    && PICKER_TEST_SHOW=1 PICKER_TEST_CANVAS="$TMP/canvas.log" ./PickerEditor ../../Docs/Sample.plist >/dev/null )
+  ( cd Utilities/TestPickerEditor && make clean >/dev/null 2>&1 )
+  ( cd Utilities/TestCanopy && make clean >/dev/null 2>&1; make -j "$(getconf _NPROCESSORS_ONLN)" >/dev/null )
+  ( cd Utilities/TestCanopy && ./Canopy "$RES" Auto "$TMP/picker" -n 6 -t 5 wait:120 snap end >/dev/null )
+  ( cd Utilities/TestCanopy && ./Canopy "$RES" Auto "$TMP/sheet" -replay "$TMP/canvas.log" -pick 0,50,72 >/dev/null )
+  ( cd Utilities/TestCanopy && make clean >/dev/null 2>&1 )
+  python3 -I Utilities/TestCanopy/png.py "$TMP"/picker-0.bgra "$TMP"/sheet-*.bgra >/dev/null
+  cp "$TMP/picker-0.png" DrogaBox/screenshots/picker.png
+  cp "$TMP/sheet-0.png" DrogaBox/screenshots/sheet-menu.png
+  cp "$TMP/sheet-1.png" DrogaBox/screenshots/sheet-config.png
+  cp "$TMP/sheet-2.png" DrogaBox/screenshots/sheet-files.png
+else
+  echo "OC_RESOURCES not set: the picker and sheet pictures were not drawn"
+fi
+
 ls DrogaBox/screenshots

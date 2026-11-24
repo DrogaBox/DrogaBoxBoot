@@ -4,11 +4,12 @@ The zip installs it as `EFI/OC/Resources/Image/DrogaBox/AETHER`. With `Misc > Bo
 `Auto` (the default), OpenCanopy uses it whenever it is there. To pick it by name, set
 `PickerVariant` to `DrogaBox\AETHER`.
 
-- The disk icons (macOS, Recovery, external disks, network boot) are DrogaBox's, in the AETHER look.
-- The rest (Time Machine, firmware settings, Windows, shell, tools, arrows, buttons, cursor) comes from the
-  GoldenGate theme of [acidanthera/OcBinaryData](https://github.com/acidanthera/OcBinaryData).
-- `Background.icns` is a dark field with soft red and blue glows, the same in 1x and 2x (1920x1080). It has
-  no text in it, so nothing shows through behind the entries.
+- The icons are those of the GoldenGate theme of
+  [acidanthera/OcBinaryData](https://github.com/acidanthera/OcBinaryData), in the style of the startup
+  screen of a Mac: disks, Recovery, Time Machine, Windows, tools, buttons, cursor. macOS entries show the
+  disk icon, or the volume's own icon with `PickerAttributes` bit `0x0001`, as on a Mac.
+- `Background.icns` is DrogaBox's: a dark field with soft red and blue glows, the same in 1x and 2x
+  (1920x1080). It has no text in it, so nothing shows through behind the entries.
 
 Every icon has a 1x and a 2x image (`ic07` and `ic13`). On screens of about 1080p, OpenCanopy draws the 2x
 images and shrinks them to 1.5x (see `OC_ATTR_NO_ZOOM` in `PickerAttributes`).
