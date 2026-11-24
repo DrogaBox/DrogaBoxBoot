@@ -47,13 +47,21 @@ EdRestoreBackup (
   Present = OcStorageReadFileUnicode (State->Storage, OcMiscGetConfigName (), &PresentSize);
   EdConfigNameAscii (Name, sizeof (Name));
 
-  if ((Backup == NULL) || (Present == NULL)) {
+  if ((Backup == NULL) || ((Present == NULL) && (OcMiscGetConfigSource (NULL) != OcConfigSourceBackup))) {
     AsciiSPrint (Line, sizeof (Line), "There is no %a.bak: nothing was saved from the editor yet", Name);
     EdUiNotify (&State->Ui, Line, TRUE);
   } else if (EFI_ERROR (EditPlistCountErrors (Backup, BackupSize, &Errors))) {
     EdUiNotify (&State->Ui, "The backup is not a config OpenCore can load", TRUE);
   } else {
-    AsciiSPrint (Line, sizeof (Line), "Put %a.bak back as %a? The present one will be kept as the backup", Name, Name);
+    if (OcMiscGetConfigSource (NULL) == OcConfigSourceBackup) {
+      //
+      // The present one could not be loaded, and the backup stays as it is.
+      //
+      AsciiSPrint (Line, sizeof (Line), "Put %a.bak back as %a? The backup stays as it is", Name, Name);
+    } else {
+      AsciiSPrint (Line, sizeof (Line), "Put %a.bak back as %a? The present one will be kept as the backup", Name, Name);
+    }
+
     if (EdUiConfirm (&State->Ui, Line)) {
       Status = EdWriteConfig (State->Storage, Present, PresentSize, Backup, BackupSize);
       if (EFI_ERROR (Status)) {
@@ -92,6 +100,8 @@ EdConfigSourceNote (
       return "  (kept)";
     case OcConfigSourceFallback:
       return "  (the chosen one failed)";
+    case OcConfigSourceBackup:
+      return "  (it failed, started with its .bak)";
     default:
       return "";
   }
@@ -111,6 +121,8 @@ EdConfigSourceDescription (
       return "chosen for this start only";
     case OcConfigSourceKept:
       return "chosen to stay until another one is chosen";
+    case OcConfigSourceBackup:
+      return "could not be loaded, started with its .bak";
     default:
       return "the default";
   }
@@ -378,7 +390,9 @@ EdConfigChooser (
     EdUiTitle (Ui, "Config files", Subtitle);
     EdListDraw (Ui, 3, Visible, &List, EdConfigItem, Files);
 
-    if (Source == OcConfigSourceFallback) {
+    if (Source == OcConfigSourceBackup) {
+      EdUiStatus (Ui, Ui->AttrError, "config.plist failed to load, started with config.plist.bak (Undo puts it back)");
+    } else if (Source == OcConfigSourceFallback) {
       EdUnicodeToAscii (Failed, Name, sizeof (Name));
       AsciiSPrint (Failure, sizeof (Failure), "The chosen %a could not be used, the default config is in use", Name);
       EdUiStatus (Ui, Ui->AttrError, Failure);

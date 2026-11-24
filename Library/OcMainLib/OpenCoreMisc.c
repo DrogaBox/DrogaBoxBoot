@@ -556,7 +556,8 @@ OcMiscEarlyInit (
     OcMiscGetConfigName (),
     OcMiscGetConfigSource (NULL) == OcConfigSourceOnce ? "chosen for this start" :
     OcMiscGetConfigSource (NULL) == OcConfigSourceKept ? "chosen to stay" :
-    OcMiscGetConfigSource (NULL) == OcConfigSourceFallback ? "the chosen one could not be used" : "default"
+    OcMiscGetConfigSource (NULL) == OcConfigSourceFallback ? "the chosen one could not be used" :
+    OcMiscGetConfigSource (NULL) == OcConfigSourceBackup ? "it could not be loaded, its backup is in use" : "default"
     ));
 
   Status = gRT->GetTime (&BootTime, NULL);
