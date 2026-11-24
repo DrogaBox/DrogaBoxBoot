@@ -33,8 +33,8 @@ typedef struct {
   Longest indentation of a line which is repeated for added entries, and room for
   one more level of it.
 **/
-#define EDIT_MAX_INDENT        32U
-#define EDIT_MAX_COPY_INDENT   (EDIT_MAX_INDENT - 4U)
+#define EDIT_MAX_INDENT       32U
+#define EDIT_MAX_COPY_INDENT  (EDIT_MAX_INDENT - 4U)
 
 STATIC
 VOID
@@ -709,7 +709,7 @@ EditPlistSetString (
   //
   Index = EditFindPatch (Plist, Node);
   if (  (Kind == EditPlistKindString)
-     && (AsciiStrCmp (XmlNodeContent (Node) != NULL ? XmlNodeContent (Node) : "", Value) == 0))
+     && (AsciiStrCmp ((XmlNodeContent (Node) != NULL) ? XmlNodeContent (Node) : "", Value) == 0))
   {
     if (Index != MAX_UINT32) {
       EditRemovePatch (Plist, Index);
@@ -900,15 +900,15 @@ EditGetDictLayout (
   OUT EDIT_DICT_LAYOUT  *Layout
   )
 {
-  UINT32    Count;
-  UINT32    DictStart;
-  UINT32    DictEnd;
-  UINT32    KeyStart;
-  UINT32    KeyEnd;
-  UINT32    LastStart;
-  UINT32    LastEnd;
-  UINT32    LineStart;
-  BOOLEAN   Multiline;
+  UINT32   Count;
+  UINT32   DictStart;
+  UINT32   DictEnd;
+  UINT32   KeyStart;
+  UINT32   KeyEnd;
+  UINT32   LastStart;
+  UINT32   LastEnd;
+  UINT32   LineStart;
+  BOOLEAN  Multiline;
 
   ZeroMem (Layout, sizeof (*Layout));
 
@@ -943,7 +943,6 @@ EditGetDictLayout (
         AsciiStrCatS (Layout->Indent, sizeof (Layout->Indent), "    ");
         AsciiStrCpyS (Layout->Unit, sizeof (Layout->Unit), "    ");
       }
-
     }
 
     if (!Multiline) {

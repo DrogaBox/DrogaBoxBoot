@@ -191,7 +191,7 @@ EdUiContentRows (
 **/
 OC_PICKER_KEY_INFO *
 EdUiWaitKey (
-  IN OUT ED_UI  *Ui,
+  IN OUT ED_UI    *Ui,
   IN     BOOLEAN  Typing
   );
 
@@ -241,12 +241,12 @@ EdUiConfirm (
 **/
 VOID
 EdListDraw (
-  IN ED_UI         *Ui,
-  IN UINTN         FirstRow,
-  IN UINTN         Visible,
-  IN CONST ED_LIST *List,
-  IN ED_LIST_ITEM  Item,
-  IN VOID          *Context
+  IN ED_UI          *Ui,
+  IN UINTN          FirstRow,
+  IN UINTN          Visible,
+  IN CONST ED_LIST  *List,
+  IN ED_LIST_ITEM   Item,
+  IN VOID           *Context
   );
 
 /**
@@ -256,9 +256,9 @@ EdListDraw (
 **/
 BOOLEAN
 EdListMove (
-  IN OUT ED_LIST     *List,
-  IN     UINTN       Visible,
-  IN     OC_KEY_CODE KeyCode
+  IN OUT ED_LIST      *List,
+  IN     UINTN        Visible,
+  IN     OC_KEY_CODE  KeyCode
   );
 
 /**
@@ -275,12 +275,12 @@ EdListMove (
 **/
 INTN
 EdUiMenu (
-  IN OUT ED_UI           *Ui,
-  IN     UINTN           FirstRow,
-  IN     CONST CHAR8     **Items,
-  IN     CONST BOOLEAN   *Enabled  OPTIONAL,
-  IN     UINTN           Count,
-  IN OUT UINTN           *Selected
+  IN OUT ED_UI          *Ui,
+  IN     UINTN          FirstRow,
+  IN     CONST CHAR8    **Items,
+  IN     CONST BOOLEAN  *Enabled  OPTIONAL,
+  IN     UINTN          Count,
+  IN OUT UINTN          *Selected
   );
 
 /**

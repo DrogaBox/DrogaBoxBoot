@@ -77,8 +77,8 @@ STATIC CONST CHAR8  mTabbed[] =
 STATIC
 XML_NODE *
 Find (
-  IN EDIT_PLIST  *Plist,
-  IN CONST CHAR8 *Key
+  IN EDIT_PLIST   *Plist,
+  IN CONST CHAR8  *Key
   )
 {
   XML_NODE  *Node;
@@ -507,18 +507,18 @@ CollectBooleans (
   IN     BOOLEAN     Verbose
   )
 {
-  UINT32      Index;
-  UINT32      Count;
-  EDIT_PLIST  Copy;
-  XML_NODE    *Leaf;
-  CHAR8       *Text;
-  UINT32      Size;
-  UINT32      Start;
-  UINT32      End;
-  UINT32      Errors;
-  CHAR8       *Expected;
-  UINT32      ExpectedSize;
-  CONST CHAR8 *NewElement;
+  UINT32       Index;
+  UINT32       Count;
+  EDIT_PLIST   Copy;
+  XML_NODE     *Leaf;
+  CHAR8        *Text;
+  UINT32       Size;
+  UINT32       Start;
+  UINT32       End;
+  UINT32       Errors;
+  CHAR8        *Expected;
+  UINT32       ExpectedSize;
+  CONST CHAR8  *NewElement;
 
   if (EditPlistNodeKind (Node) == EditPlistKindBoolean) {
     ++mBooleans;
@@ -942,7 +942,7 @@ TestReorderFuzz (
   CHECK (Array != NULL);
   Count = Array != NULL ? EditPlistChildCount (Array) : 0;
   CHECK (Count > 3 && Count <= 64);
-  if (Count <= 3 || Count > 64) {
+  if ((Count <= 3) || (Count > 64)) {
     EditPlistFree (&Plist);
     return;
   }
@@ -989,7 +989,7 @@ TestReorderFuzz (
       case 4:
       case 5:
       case 6:
-        Element = NextRandom (&Seed) % Count;
+        Element          = NextRandom (&Seed) % Count;
         Value[Element]   = !Value[Element];
         Touched[Element] = TRUE;
         CHECK (!EFI_ERROR (EditPlistSetBoolean (&Plist, Enabled[Element], Value[Element])));
@@ -1014,8 +1014,8 @@ TestReorderFuzz (
     Position = 0;
     for (Index = 0; Index < Count; ++Index) {
       CopyMem (&Expected[Used], &Data[Position], Starts[Index] - Position);
-      Used    += Starts[Index] - Position;
-      Element  = Order[Index];
+      Used   += Starts[Index] - Position;
+      Element = Order[Index];
 
       if (Touched[Element]) {
         CopyMem (&Expected[Used], &Data[Starts[Element]], ValueStarts[Element] - Starts[Element]);
@@ -1033,13 +1033,13 @@ TestReorderFuzz (
     }
 
     CopyMem (&Expected[Used], &Data[Position], Size - Position);
-    Used += Size - Position;
+    Used          += Size - Position;
     Expected[Used] = '\0';
-    ExpectedSize = Used;
+    ExpectedSize   = Used;
 
     CHECK (!EFI_ERROR (EditPlistRender (&Plist, &Text, &TextSize)));
     CHECK (TextSize == ExpectedSize && CompareMem (Text, Expected, ExpectedSize) == 0);
-    if (TextSize != ExpectedSize || CompareMem (Text, Expected, ExpectedSize) != 0) {
+    if ((TextSize != ExpectedSize) || (CompareMem (Text, Expected, ExpectedSize) != 0)) {
       printf ("%s: the text is wrong after %u rounds\n", FileName, Round);
       FreePool (Text);
       break;
@@ -1222,12 +1222,12 @@ TestKextProblems (
   )
 {
   STATIC CONST KEXT_SPEC  Good[] = {
-    { "L", { NULL },        TRUE, TRUE, FALSE },  // 0 Lilu
-    { "V", { "L", NULL },   TRUE, TRUE, FALSE },  // 1 VirtualSMC
-    { "P", { "L", "V" },    TRUE, TRUE, FALSE },  // 2 a plugin of both
-    { "W", { "L", NULL },   TRUE, TRUE, FALSE },  // 3 something else
-    { "N", { NULL },        FALSE, TRUE, FALSE }, // 4 a kext with a plugin, off
-    { "NP", { "N", NULL },  FALSE, TRUE, FALSE }  // 5 the plugin, off
+    { "L",  { NULL }, TRUE,  TRUE, FALSE },       // 0 Lilu
+    { "V",  { "L", NULL}, TRUE,  TRUE, FALSE },   // 1 VirtualSMC
+    { "P",  { "L", "V"}, TRUE,  TRUE, FALSE },    // 2 a plugin of both
+    { "W",  { "L", NULL}, TRUE,  TRUE, FALSE },   // 3 something else
+    { "N",  { NULL }, FALSE, TRUE, FALSE },       // 4 a kext with a plugin, off
+    { "NP", { "N", NULL}, FALSE, TRUE, FALSE }    // 5 the plugin, off
   };
 
   ED_KEXT_INFO     Infos[6];
@@ -1297,7 +1297,7 @@ TestKextProblems (
   // Something which is there from the start (Kernel > Force) is not missing.
   //
   {
-    CONST CHAR8  *Provided[] = { "other", "L" };
+    CONST CHAR8  *Provided[]  = { "other", "L" };
     CONST CHAR8  *Elsewhere[] = { "other" };
 
     CHECK (EdKextFindProblems (Infos, Enabled, 6, Order, Provided, 2, Problems) == 0);
@@ -1319,7 +1319,7 @@ TestKextProblems (
   Order[3]            = 2;
   Order[4]            = 3;
   Order[5]            = 5;
-  Total = EdKextFindProblems (Infos, Enabled, 6, Order, NULL, 0, Problems);
+  Total               = EdKextFindProblems (Infos, Enabled, 6, Order, NULL, 0, Problems);
   CHECK (Problems[1].Kind == EdKextOrder);
   CHECK (Problems[2].Kind == EdKextOk);
   CHECK (Problems[3].Kind == EdKextOk);
@@ -1374,11 +1374,11 @@ TestKextSort (
   )
 {
   STATIC CONST KEXT_SPEC  Wrong[] = {
-    { "P", { "V", "L" },  TRUE, TRUE, FALSE },   // 0 needs V and L
-    { "W", { "L", NULL }, TRUE, TRUE, FALSE },   // 1
-    { "V", { "L", NULL }, TRUE, TRUE, FALSE },   // 2
-    { "X", { NULL },      TRUE, TRUE, FALSE },   // 3 needs nothing
-    { "L", { NULL },      TRUE, TRUE, FALSE }    // 4 needed by the rest
+    { "P", { "V", "L"   }, TRUE, TRUE, FALSE }, // 0 needs V and L
+    { "W", { "L", NULL  }, TRUE, TRUE, FALSE }, // 1
+    { "V", { "L", NULL  }, TRUE, TRUE, FALSE }, // 2
+    { "X", { NULL },TRUE, TRUE, FALSE },         // 3 needs nothing
+    { "L", { NULL },TRUE, TRUE, FALSE }          // 4 needed by the rest
   };
 
   ED_KEXT_INFO     Infos[8];
@@ -1412,11 +1412,11 @@ TestKextSort (
   //
   {
     STATIC CONST KEXT_SPEC  Off[] = {
-      { "P", { "L", NULL }, FALSE, TRUE, FALSE },   // off and needs L which is below
-      { "Q", { "L", NULL }, TRUE, TRUE, FALSE },    // on and needs L which is off
-      { "R", { "S", NULL }, TRUE, TRUE, FALSE },    // on and needs S which is below
-      { "L", { NULL },      FALSE, TRUE, FALSE },   // off
-      { "S", { NULL },      TRUE, TRUE, FALSE }     // on
+      { "P", { "L", NULL  }, FALSE, TRUE, FALSE }, // off and needs L which is below
+      { "Q", { "L", NULL  }, TRUE,  TRUE, FALSE }, // on and needs L which is off
+      { "R", { "S", NULL  }, TRUE,  TRUE, FALSE }, // on and needs S which is below
+      { "L", { NULL },FALSE, TRUE, FALSE },         // off
+      { "S", { NULL },TRUE, TRUE, FALSE }           // on
     };
 
     SpecToInfo (Off, ARRAY_SIZE (Off), Infos, Enabled);
@@ -1436,10 +1436,10 @@ TestKextSort (
   //
   {
     STATIC CONST KEXT_SPEC  Loop[] = {
-      { "A", { "B", NULL }, TRUE, TRUE, FALSE },
-      { "B", { "C", NULL }, TRUE, TRUE, FALSE },
-      { "C", { "A", NULL }, TRUE, TRUE, FALSE },
-      { "D", { NULL },      TRUE, TRUE, FALSE }
+      { "A", { "B", NULL  }, TRUE, TRUE, FALSE },
+      { "B", { "C", NULL  }, TRUE, TRUE, FALSE },
+      { "C", { "A", NULL  }, TRUE, TRUE, FALSE },
+      { "D", { NULL },TRUE, TRUE, FALSE }
     };
 
     SpecToInfo (Loop, ARRAY_SIZE (Loop), Infos, Enabled);
@@ -1463,10 +1463,10 @@ TestKextSort (
   //
   {
     STATIC CONST KEXT_SPEC  Twice[] = {
-      { "U", { "L", NULL }, TRUE, TRUE, FALSE },
-      { "L", { NULL },      TRUE, TRUE, FALSE },
-      { "T", { NULL },      TRUE, TRUE, FALSE },
-      { "L", { NULL },      TRUE, TRUE, FALSE }
+      { "U", { "L", NULL  }, TRUE, TRUE, FALSE },
+      { "L", { NULL },TRUE, TRUE, FALSE },
+      { "T", { NULL },TRUE, TRUE, FALSE },
+      { "L", { NULL },TRUE, TRUE, FALSE }
     };
 
     SpecToInfo (Twice, ARRAY_SIZE (Twice), Infos, Enabled);
@@ -1485,10 +1485,10 @@ TestKextSort (
     ED_KEXT_INFO  *Many;
     BOOLEAN       *On;
     UINT32        *Big;
-    CHAR8         (*Names)[16];
-    CHAR8         **Libs;
-    UINT32        Count;
-    ED_KEXT_PROBLEM *Found;
+    CHAR8 (*Names)[16];
+    CHAR8            **Libs;
+    UINT32           Count;
+    ED_KEXT_PROBLEM  *Found;
 
     Count = 500;
     Many  = AllocateZeroPool (Count * sizeof (*Many));
@@ -1510,7 +1510,7 @@ TestKextSort (
     }
 
     for (Index = 0; Index + 1 < Count; ++Index) {
-      Libs[Index]            = Names[Index + 1];
+      Libs[Index]              = Names[Index + 1];
       Many[Index].Libraries    = &Libs[Index];
       Many[Index].LibraryCount = 1;
     }
@@ -1579,8 +1579,8 @@ TestKextSortFuzz (
       Enabled[Index]          = TRUE;
 
       for (Other = 0; (Index > 0) && (Other < 1 + NextRandom (&Seed) % 3); ++Other) {
-        Deps[Index][Infos[Index].LibraryCount]   = NextRandom (&Seed) % Index;
-        Libs[Index][Infos[Index].LibraryCount]   = Names[Deps[Index][Infos[Index].LibraryCount]];
+        Deps[Index][Infos[Index].LibraryCount] = NextRandom (&Seed) % Index;
+        Libs[Index][Infos[Index].LibraryCount] = Names[Deps[Index][Infos[Index].LibraryCount]];
         ++Infos[Index].LibraryCount;
       }
 
@@ -1611,7 +1611,7 @@ TestKextSortFuzz (
       }
 
       CHECK (Found > 0);
-      Good[Index] = Candidates[NextRandom (&Seed) % Found];
+      Good[Index]         = Candidates[NextRandom (&Seed) % Found];
       Placed[Good[Index]] = TRUE;
     }
 
@@ -1699,7 +1699,10 @@ TestFile (
   if (Node != NULL) {
     CHECK (EditPlistFindChild (Node, "boot-args") != NULL);
     CHECK (!EFI_ERROR (EditPlistSetString (&Plist, EditPlistFindChild (Node, "boot-args"), "-v debug=0x100")));
-    Bytes[0] = 0xE7; Bytes[1] = 0x03; Bytes[2] = 0; Bytes[3] = 0;
+    Bytes[0] = 0xE7;
+    Bytes[1] = 0x03;
+    Bytes[2] = 0;
+    Bytes[3] = 0;
     CHECK (!EFI_ERROR (EditPlistSetData (&Plist, EditPlistFindChild (Node, "csr-active-config"), Bytes, 4)));
     CHECK (!EFI_ERROR (EditPlistAddString (&Plist, Node, "test-added-key", "test value")));
   }

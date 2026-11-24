@@ -55,19 +55,19 @@ STATIC UINT32  mChecks;
 #define SCREEN_COLUMNS  80
 #define SCREEN_ROWS     25
 
-STATIC CHAR16  mScreen[SCREEN_ROWS][SCREEN_COLUMNS + 1];
-STATIC UINT8   mScreenAttr[SCREEN_ROWS][SCREEN_COLUMNS];
-STATIC UINTN   mCursorColumn;
-STATIC UINTN   mCursorRow;
-STATIC UINTN   mAttribute;
-STATIC UINT32  mLastColumnWrites;
-STATIC UINT32  mLastRowWrites;
-STATIC UINT32  mClearCount;
-STATIC UINT32  mModeSetCount;
+STATIC CHAR16                           mScreen[SCREEN_ROWS][SCREEN_COLUMNS + 1];
+STATIC UINT8                            mScreenAttr[SCREEN_ROWS][SCREEN_COLUMNS];
+STATIC UINTN                            mCursorColumn;
+STATIC UINTN                            mCursorRow;
+STATIC UINTN                            mAttribute;
+STATIC UINT32                           mLastColumnWrites;
+STATIC UINT32                           mLastRowWrites;
+STATIC UINT32                           mClearCount;
+STATIC UINT32                           mModeSetCount;
 STATIC EFI_CONSOLE_CONTROL_SCREEN_MODE  mConsoleMode = EfiConsoleControlScreenGraphics;
 
 STATIC EFI_SIMPLE_TEXT_OUTPUT_PROTOCOL  mFakeConOut;
-STATIC EFI_SIMPLE_TEXT_OUTPUT_MODE     mFakeConOutMode;
+STATIC EFI_SIMPLE_TEXT_OUTPUT_MODE      mFakeConOutMode;
 
 STATIC
 VOID
@@ -215,8 +215,8 @@ FakeSetAttribute (
   IN UINTN                            Attribute
   )
 {
-  mAttribute              = Attribute;
-  mFakeConOutMode.Attribute   = (INT32)Attribute;
+  mAttribute                = Attribute;
+  mFakeConOutMode.Attribute = (INT32)Attribute;
   return EFI_SUCCESS;
 }
 
@@ -395,8 +395,8 @@ STATIC UINTN         mScriptPosition;
 STATIC jmp_buf       mScriptEnd;
 STATIC BOOLEAN       mShowScreens;
 STATIC BOOLEAN       mScriptExhausted;
-STATIC UINT32         mTypingWaits;
-STATIC UINT32         mNavigationWaits;
+STATIC UINT32        mTypingWaits;
+STATIC UINT32        mNavigationWaits;
 
 STATIC
 VOID
@@ -603,12 +603,12 @@ FakeFlushTypingBuffer (
 #define MAX_VARIABLES  16
 
 typedef struct {
-  BOOLEAN    Used;
-  CHAR16     Name[48];
-  EFI_GUID   Guid;
-  UINT32     Attributes;
-  UINTN      Size;
-  UINT8      Data[1200];
+  BOOLEAN     Used;
+  CHAR16      Name[48];
+  EFI_GUID    Guid;
+  UINT32      Attributes;
+  UINTN       Size;
+  UINT8       Data[1200];
 } FAKE_VARIABLE;
 
 STATIC FAKE_VARIABLE  mVariables[MAX_VARIABLES];
@@ -618,8 +618,8 @@ STATIC UINT32         mSetVariableCalls;
 STATIC
 FAKE_VARIABLE *
 FindVariable (
-  IN CONST CHAR16  *Name,
-  IN CONST EFI_GUID *Guid
+  IN CONST CHAR16    *Name,
+  IN CONST EFI_GUID  *Guid
   )
 {
   UINTN  Index;
@@ -809,8 +809,8 @@ HasBackup (
 // ---------------------------------------------------------------------------------
 //
 
-STATIC CHAR8  mDirectory[256];
-STATIC BOOLEAN mFileWriteProtected;
+STATIC CHAR8    mDirectory[256];
+STATIC BOOLEAN  mFileWriteProtected;
 
 STATIC
 VOID
@@ -899,9 +899,9 @@ ReadHostFile (
   OUT UINT32       *Size
   )
 {
-  FILE  *File;
-  long  Length;
-  UINT8 *Buffer;
+  FILE   *File;
+  long   Length;
+  UINT8  *Buffer;
 
   File = fopen (Path, "rb");
   if (File == NULL) {
@@ -1112,10 +1112,10 @@ OcMiscGetVersionString (
 
 VOID
 OcLoadLegacyNvram (
-  IN OC_STORAGE_CONTEXT  *Storage,
-  IN OC_NVRAM_LEGACY_MAP *Schema,
-  IN BOOLEAN             Overwrite,
-  IN BOOLEAN             BootVariableRouting
+  IN OC_STORAGE_CONTEXT   *Storage,
+  IN OC_NVRAM_LEGACY_MAP  *Schema,
+  IN BOOLEAN              Overwrite,
+  IN BOOLEAN              BootVariableRouting
   )
 {
 }
@@ -1150,15 +1150,15 @@ OcProcessVariableGuid (
 // ---------------------------------------------------------------------------------
 //
 
-STATIC UINT8                *mSample;
-STATIC UINT32               mSampleSize;
-STATIC OC_PICKER_CONTEXT    *mPicker;
-STATIC OC_STORAGE_CONTEXT   mStorage;
-STATIC OC_HOTKEY_CONTEXT    mHotKeys;
+STATIC UINT8                            *mSample;
+STATIC UINT32                           mSampleSize;
+STATIC OC_PICKER_CONTEXT                *mPicker;
+STATIC OC_STORAGE_CONTEXT               mStorage;
+STATIC OC_HOTKEY_CONTEXT                mHotKeys;
 STATIC EFI_SIMPLE_FILE_SYSTEM_PROTOCOL  mFileSystem;
-STATIC EFI_FILE_PROTOCOL    mRootFile;
-STATIC OC_BOOT_ENTRY        mEntry;
-STATIC CHAR16               mEntryName[] = L"macOS Test";
+STATIC EFI_FILE_PROTOCOL                mRootFile;
+STATIC OC_BOOT_ENTRY                    mEntry;
+STATIC CHAR16                           mEntryName[] = L"macOS Test";
 
 STATIC
 EFI_STATUS
@@ -1342,16 +1342,16 @@ RunEditor (
 {
   EFI_STATUS  Status;
 
-  mSnapshot[0]        = '\0';
-  mScriptPosition     = 0;
-  mScriptExhausted    = FALSE;
-  mResets             = 0;
-  mLastColumnWrites   = 0;
-  mLastRowWrites      = 0;
-  mConsoleMode        = EfiConsoleControlScreenGraphics;
+  mSnapshot[0]                  = '\0';
+  mScriptPosition               = 0;
+  mScriptExhausted              = FALSE;
+  mResets                       = 0;
+  mLastColumnWrites             = 0;
+  mLastRowWrites                = 0;
+  mConsoleMode                  = EfiConsoleControlScreenGraphics;
   mFakeConOutMode.CursorVisible = FALSE;
   mFakeConOutMode.Attribute     = EFI_TEXT_ATTR (EFI_LIGHTGRAY, EFI_BLACK);
-  mAttribute                = (UINTN)mFakeConOutMode.Attribute;
+  mAttribute                    = (UINTN)mFakeConOutMode.Attribute;
 
   if (Restarted != NULL) {
     *Restarted = FALSE;
@@ -1404,7 +1404,7 @@ TestBootArgsVariables (
   VOID
   )
 {
-  STATIC CONST CHAR8  Original[]  = "keepsyms=1 debug=0x100";
+  STATIC CONST CHAR8  Original[]   = "keepsyms=1 debug=0x100";
   STATIC CONST CHAR8  Terminated[] = "-v keepsyms=1";
 
   ClearVariables ();
@@ -1811,10 +1811,10 @@ IsOriginalWithReplacement (
   IN CONST CHAR8  *New
   )
 {
-  CHAR8   *Text;
-  CHAR8   *Position;
-  UINTN   Head;
-  BOOLEAN Same;
+  CHAR8    *Text;
+  CHAR8    *Position;
+  UINTN    Head;
+  BOOLEAN  Same;
 
   Text = AllocatePool ((UINTN)OriginalSize + 1);
   CopyMem (Text, Original, OriginalSize);
@@ -1848,22 +1848,22 @@ TestConfigEditor (
   VOID
   )
 {
-  UINT32        OriginalSize;
-  VOID          *Original;
-  UINT32        NewSize;
-  VOID          *New;
-  UINT32        BackupSize;
-  VOID          *Backup;
-  BOOLEAN       Restarted;
-  EDIT_PLIST    Plist;
-  XML_NODE      *Node;
-  CONST CHAR8   *Quirks[]   = { "Kernel", "Quirks", "AppleCpuPmCfgLock" };
-  CONST CHAR8   *Timeout[]  = { "Misc", "Boot", "Timeout" };
-  CONST CHAR8   *Vault[]    = { "Misc", "Security", "Vault" };
-  CONST CHAR8   *Allow[]    = { "Misc", "Security", "AllowPickerEdit" };
-  CONST CHAR8   *PickerMode[] = { "Misc", "Boot", "PickerMode" };
-  CONST CHAR8   *Csr[]      = { "NVRAM", "Add", "7C436110-AB2A-4BBB-A880-FE41995C9F82", "csr-active-config" };
-  CONST CHAR8   *Kext[]     = { "Kernel", "Add", "#0", "Enabled" };
+  UINT32       OriginalSize;
+  VOID         *Original;
+  UINT32       NewSize;
+  VOID         *New;
+  UINT32       BackupSize;
+  VOID         *Backup;
+  BOOLEAN      Restarted;
+  EDIT_PLIST   Plist;
+  XML_NODE     *Node;
+  CONST CHAR8  *Quirks[]     = { "Kernel", "Quirks", "AppleCpuPmCfgLock" };
+  CONST CHAR8  *Timeout[]    = { "Misc", "Boot", "Timeout" };
+  CONST CHAR8  *Vault[]      = { "Misc", "Security", "Vault" };
+  CONST CHAR8  *Allow[]      = { "Misc", "Security", "AllowPickerEdit" };
+  CONST CHAR8  *PickerMode[] = { "Misc", "Boot", "PickerMode" };
+  CONST CHAR8  *Csr[]        = { "NVRAM", "Add", "7C436110-AB2A-4BBB-A880-FE41995C9F82", "csr-active-config" };
+  CONST CHAR8  *Kext[]       = { "Kernel", "Add", "#0", "Enabled" };
 
   ClearVariables ();
   Original = ReadTestFile ("config.plist", &OriginalSize);
@@ -1949,13 +1949,13 @@ TestConfigEditor (
   Press (KeyDown, 2);
   Press (KeyEnter, 1);
   NavigateTo ((CONST CHAR8 *[]) { "Kernel", "Add" }, 2);   // enter Kernel, then Add is selected
-  Press (KeyEnter, 1);                                      // open Add
-  Press (KeySpace, 1);                                      // first kext: switch Enabled
-  Press (KeyEsc, 3);                                        // question
-  Press (KeyEsc, 1);                                        // keep editing
-  Press (KeyF10, 1);                                        // save
-  Press (KeyEsc, 1);                                        // do not restart
-  Press (KeyEsc, 1);                                        // leave the options
+  Press (KeyEnter, 1);                                     // open Add
+  Press (KeySpace, 1);                                     // first kext: switch Enabled
+  Press (KeyEsc, 3);                                       // question
+  Press (KeyEsc, 1);                                       // keep editing
+  Press (KeyF10, 1);                                       // save
+  Press (KeyEsc, 1);                                       // do not restart
+  Press (KeyEsc, 1);                                       // leave the options
   RUN_EDITOR (&Restarted);
   CHECK (!Restarted);
   CHECK (SeenOnScreen ("The config is saved, restart to apply the changes"));
@@ -2502,7 +2502,7 @@ TestConfigChoiceLibrary (
     for (Index = 0; Index < ARRAY_SIZE (Bad); ++Index) {
       WriteMarker (Bad[Index]);
       Timeout = LoadConfigTimeout (&Status);
-      if (!(!EFI_ERROR (Status) && Timeout == 5 && ConfigIs (L"config.plist", OcConfigSourceDefault) && !HasMarker ())) {
+      if (!(!EFI_ERROR (Status) && (Timeout == 5) && ConfigIs (L"config.plist", OcConfigSourceDefault) && !HasMarker ())) {
         printf ("FAIL: unacceptable choice %u was not dropped\n", (unsigned)Index);
         ++mFailures;
       }
@@ -2545,7 +2545,7 @@ TestConfigChoiceLibrary (
   //
   WriteMarker ("config2.plist\nkeep\n");
   mStorage.HasVault = TRUE;
-  Timeout = LoadConfigTimeout (&Status);
+  Timeout           = LoadConfigTimeout (&Status);
   CHECK (Timeout == 5 && ConfigIs (L"config.plist", OcConfigSourceDefault));
   CHECK (HasMarker ());
   CHECK (OcMiscSetConfigChoice (&mStorage, L"config2.plist", FALSE) == EFI_INVALID_PARAMETER);
@@ -2846,7 +2846,7 @@ TestConfigChooser (
   //
   // A file system which cannot be written to.
   //
-  Timeout = LoadConfigTimeout (NULL);
+  Timeout             = LoadConfigTimeout (NULL);
   mFileWriteProtected = TRUE;
   ScriptReset ();
   Press (KeyDown, MENU_CHOOSER);
@@ -2987,7 +2987,7 @@ TestConfigLimits (
   CHECK (!Restarted);
   CHECK (SeenOnScreen ("Cannot write config.plist"));
   mFileWriteProtected = FALSE;
-  New = ReadTestFile ("config.plist", &NewSize);
+  New                 = ReadTestFile ("config.plist", &NewSize);
   CHECK (NewSize == Size && memcmp (New, Original, Size) == 0);
   FreePool (New);
   FreePool (Original);
@@ -3122,32 +3122,50 @@ typedef struct {
   CONST CHAR8    *Libs[3];
 } KEXT_FILES;
 
-#define LILU  "as.vit9696.Lilu"
-#define PS2   "as.acidanthera.voodoo.driver.PS2Controller"
-#define INPUT "me.kishorprins.VoodooInput"
+#define LILU   "as.vit9696.Lilu"
+#define PS2    "as.acidanthera.voodoo.driver.PS2Controller"
+#define INPUT  "me.kishorprins.VoodooInput"
 
 //
 // The kexts of Docs/Sample.plist, and what each of them needs.
 //
 STATIC CONST KEXT_FILES  mSampleKexts[] = {
-  { "Lilu.kext",                         "Contents/MacOS/Lilu",                 LILU,                                  { NULL } },
-  { "VirtualSMC.kext",                   "Contents/MacOS/VirtualSMC",           "as.vit9696.VirtualSMC",               { LILU, NULL } },
-  { "WhateverGreen.kext",                "Contents/MacOS/WhateverGreen",        "as.vit9696.WhateverGreen",            { LILU, NULL } },
-  { "AppleALC.kext",                     "Contents/MacOS/AppleALC",             "as.vit9696.AppleALC",                 { LILU, NULL } },
-  { "IntelMausi.kext",                   "Contents/MacOS/IntelMausi",           "com.intel.driver.IntelMausi",         { NULL } },
-  { "Legacy_USB3.kext",                  NULL,                                  "com.example.Legacy_USB3",             { NULL } },
-  { "AppleMCEReporterDisabler.kext",     NULL,                                  "ru.joedm.AppleMCEReporterDisabler",   { NULL } },
-  { "VoodooPS2Controller.kext",          "Contents/MacOS/VoodooPS2Controller",  PS2,                                   { NULL } },
-  { "VoodooPS2Controller.kext/Contents/PlugIns/VoodooPS2Keyboard.kext", "Contents/MacOS/VoodooPS2Keyboard", "as.acidanthera.voodoo.driver.PS2Keyboard", { PS2, NULL } },
-  { "VoodooPS2Controller.kext/Contents/PlugIns/VoodooPS2Mouse.kext",   "Contents/MacOS/VoodooPS2Mouse",    "as.acidanthera.voodoo.driver.PS2Mouse",    { PS2, NULL } },
-  { "VoodooPS2Controller.kext/Contents/PlugIns/VoodooPS2Trackpad.kext", "Contents/MacOS/VoodooPS2Trackpad", "as.acidanthera.voodoo.driver.PS2Trackpad", { PS2, INPUT, NULL } },
-  { "VoodooPS2Controller.kext/Contents/PlugIns/VoodooInput.kext",      "Contents/MacOS/VoodooInput",       INPUT,                                      { NULL } },
-  { "AirportBrcmFixup.kext",             "Contents/MacOS/AirportBrcmFixup",     "as.vit9696.AirportBrcmFixup",         { LILU, NULL } },
-  { "AirportBrcmFixup.kext/Contents/PlugIns/AirPortBrcm4360_Injector.kext", NULL, "as.vit9696.AirPortBrcm4360_Injector", { "as.vit9696.AirportBrcmFixup", NULL } },
-  { "AirportBrcmFixup.kext/Contents/PlugIns/AirPortBrcmNIC_Injector.kext",  NULL, "as.vit9696.AirPortBrcmNIC_Injector",  { "as.vit9696.AirportBrcmFixup", NULL } },
-  { "IOSkywalkFamily.kext",              "Contents/MacOS/IOSkywalkFamily",      "com.apple.iokit.IOSkywalkFamily",     { NULL } },
-  { "IO80211FamilyLegacy.kext",          "Contents/MacOS/IO80211FamilyLegacy",  "com.apple.iokit.IO80211FamilyLegacy", { "com.apple.iokit.IOSkywalkFamily", NULL } },
-  { "IO80211FamilyLegacy.kext/Contents/PlugIns/AirPortBrcmNIC.kext", "Contents/MacOS/AirPortBrcmNIC", "com.apple.driver.AirPortBrcmNIC", { "com.apple.iokit.IO80211FamilyLegacy", NULL } }
+  { "Lilu.kext",                                                            "Contents/MacOS/Lilu",                LILU,                                       { NULL }
+  },
+  { "VirtualSMC.kext",                                                      "Contents/MacOS/VirtualSMC",          "as.vit9696.VirtualSMC",                    { LILU, NULL}
+  },
+  { "WhateverGreen.kext",                                                   "Contents/MacOS/WhateverGreen",       "as.vit9696.WhateverGreen",                 { LILU, NULL}
+  },
+  { "AppleALC.kext",                                                        "Contents/MacOS/AppleALC",            "as.vit9696.AppleALC",                      { LILU, NULL}
+  },
+  { "IntelMausi.kext",                                                      "Contents/MacOS/IntelMausi",          "com.intel.driver.IntelMausi",              { NULL }
+  },
+  { "Legacy_USB3.kext",                                                     NULL,                                 "com.example.Legacy_USB3",                  { NULL }
+  },
+  { "AppleMCEReporterDisabler.kext",                                        NULL,                                 "ru.joedm.AppleMCEReporterDisabler",        { NULL }
+  },
+  { "VoodooPS2Controller.kext",                                             "Contents/MacOS/VoodooPS2Controller", PS2,                                        { NULL }
+  },
+  { "VoodooPS2Controller.kext/Contents/PlugIns/VoodooPS2Keyboard.kext",     "Contents/MacOS/VoodooPS2Keyboard",   "as.acidanthera.voodoo.driver.PS2Keyboard", { PS2, NULL}
+  },
+  { "VoodooPS2Controller.kext/Contents/PlugIns/VoodooPS2Mouse.kext",        "Contents/MacOS/VoodooPS2Mouse",      "as.acidanthera.voodoo.driver.PS2Mouse",    { PS2, NULL}
+  },
+  { "VoodooPS2Controller.kext/Contents/PlugIns/VoodooPS2Trackpad.kext",     "Contents/MacOS/VoodooPS2Trackpad",   "as.acidanthera.voodoo.driver.PS2Trackpad", { PS2, INPUT, NULL}
+  },
+  { "VoodooPS2Controller.kext/Contents/PlugIns/VoodooInput.kext",           "Contents/MacOS/VoodooInput",         INPUT,                                      { NULL }
+  },
+  { "AirportBrcmFixup.kext",                                                "Contents/MacOS/AirportBrcmFixup",    "as.vit9696.AirportBrcmFixup",              { LILU, NULL}
+  },
+  { "AirportBrcmFixup.kext/Contents/PlugIns/AirPortBrcm4360_Injector.kext", NULL,                                 "as.vit9696.AirPortBrcm4360_Injector",      { "as.vit9696.AirportBrcmFixup", NULL}
+  },
+  { "AirportBrcmFixup.kext/Contents/PlugIns/AirPortBrcmNIC_Injector.kext",  NULL,                                 "as.vit9696.AirPortBrcmNIC_Injector",       { "as.vit9696.AirportBrcmFixup", NULL}
+  },
+  { "IOSkywalkFamily.kext",                                                 "Contents/MacOS/IOSkywalkFamily",     "com.apple.iokit.IOSkywalkFamily",          { NULL }
+  },
+  { "IO80211FamilyLegacy.kext",                                             "Contents/MacOS/IO80211FamilyLegacy", "com.apple.iokit.IO80211FamilyLegacy",      { "com.apple.iokit.IOSkywalkFamily", NULL}
+  },
+  { "IO80211FamilyLegacy.kext/Contents/PlugIns/AirPortBrcmNIC.kext",        "Contents/MacOS/AirPortBrcmNIC",      "com.apple.driver.AirPortBrcmNIC",          { "com.apple.iokit.IO80211FamilyLegacy", NULL}
+  }
 };
 
 STATIC
@@ -3629,15 +3647,17 @@ TestKexts (
   RUN_EDITOR (NULL);
   CHECK (SeenOnScreen ("The order is fixed: every kext comes after the ones it needs"));
   FileKexts ("config.plist", Kexts, sizeof (Kexts));
-  CHECK (strstr (
-           Kexts,
-           "VoodooPS2Controller.kext+ "
-           "VoodooPS2Controller.kext/Contents/PlugIns/VoodooPS2Keyboard.kext- "
-           "VoodooPS2Controller.kext/Contents/PlugIns/VoodooPS2Mouse.kext- "
-           "VoodooPS2Controller.kext/Contents/PlugIns/VoodooInput.kext+ "
-           "VoodooPS2Controller.kext/Contents/PlugIns/VoodooPS2Trackpad.kext+ "
-           "AirportBrcmFixup.kext- "
-           ) != NULL);
+  CHECK (
+    strstr (
+      Kexts,
+      "VoodooPS2Controller.kext+ "
+      "VoodooPS2Controller.kext/Contents/PlugIns/VoodooPS2Keyboard.kext- "
+      "VoodooPS2Controller.kext/Contents/PlugIns/VoodooPS2Mouse.kext- "
+      "VoodooPS2Controller.kext/Contents/PlugIns/VoodooInput.kext+ "
+      "VoodooPS2Controller.kext/Contents/PlugIns/VoodooPS2Trackpad.kext+ "
+      "AirportBrcmFixup.kext- "
+      ) != NULL
+    );
 
   WriteTestFile ("config.plist", Original, OriginalSize);
   RemoveTestFile ("config.plist.bak");
@@ -3716,12 +3736,12 @@ TestKexts (
 
     ErrorsBefore = 0;
     ErrorsAfter  = MAX_UINT32;
-    Text = AllocatePool (OriginalSize + 1);
+    Text         = AllocatePool (OriginalSize + 1);
     CopyMem (Text, Original, OriginalSize);
     Text[OriginalSize] = '\0';
-    Start    = strstr (Text, "<string>IntelMausi.kext</string>");
-    KeyStart = Start != NULL ? strstr (Start, "<key>Enabled</key>") : NULL;
-    ValueEnd = KeyStart != NULL ? strstr (KeyStart, "<false/>") : NULL;
+    Start              = strstr (Text, "<string>IntelMausi.kext</string>");
+    KeyStart           = Start != NULL ? strstr (Start, "<key>Enabled</key>") : NULL;
+    ValueEnd           = KeyStart != NULL ? strstr (KeyStart, "<false/>") : NULL;
     CHECK (ValueEnd != NULL);
     if (ValueEnd != NULL) {
       //
@@ -3945,7 +3965,9 @@ TestManyKexts (
   VOID
   )
 {
-  enum { Many = 60 };
+  enum {
+    Many = 60
+  };
 
   UINT32      Index;
   CHAR8       Kexts[Many * 20 + 64];
@@ -4155,7 +4177,6 @@ ShowScreens (
   mShowScreens = FALSE;
 }
 
-
 STATIC
 VOID
 TestOtherLists (
@@ -4322,7 +4343,6 @@ TestOtherLists (
   mStorage.HasVault = FALSE;
 }
 
-
 STATIC
 VOID
 TestCheckAndLog (
@@ -4414,7 +4434,6 @@ TestCheckAndLog (
     CHECK (system (Command) == 0);
   }
 }
-
 
 STATIC
 VOID
@@ -4520,7 +4539,6 @@ TestCompareAndUndo (
   WriteTestFile ("config.plist", Original, OriginalSize);
   RemoveTestFile ("config.plist.bak");
 }
-
 
 STATIC
 VOID

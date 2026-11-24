@@ -358,10 +358,10 @@ EdWriteConfig (
 STATIC
 EFI_STATUS
 EdCommitConfig (
-  IN  ED_STATE    *State,
-  IN  EDIT_PLIST  *Plist,
-  IN  UINT32      Baseline,
-  OUT CONST CHAR8 **Reason
+  IN  ED_STATE     *State,
+  IN  EDIT_PLIST   *Plist,
+  IN  UINT32       Baseline,
+  OUT CONST CHAR8  **Reason
   )
 {
   EFI_STATUS  Status;
@@ -410,10 +410,10 @@ EdCommitConfig (
 STATIC
 EFI_STATUS
 EdLoadConfig (
-  IN  ED_STATE    *State,
-  OUT EDIT_PLIST  *Plist,
-  OUT UINT32      *Baseline,
-  OUT CONST CHAR8 **Reason
+  IN  ED_STATE     *State,
+  OUT EDIT_PLIST   *Plist,
+  OUT UINT32       *Baseline,
+  OUT CONST CHAR8  **Reason
   )
 {
   EFI_STATUS  Status;
@@ -558,8 +558,8 @@ EdBootArgsFilter (
 STATIC
 BOOLEAN
 EdBootArgsApply (
-  IN OUT ED_STATE   *State,
-  IN     CONST CHAR8 *Args
+  IN OUT ED_STATE     *State,
+  IN     CONST CHAR8  *Args
   )
 {
   ED_UI        *Ui;
@@ -887,7 +887,7 @@ EdToggleFlag (
   EdRemoveFlag (Args, Flag);
 
   Length = AsciiStrLen (Args);
-  if (Length + (Length > 0 ? 1 : 0) + AsciiStrLen (Flag) >= Size) {
+  if (Length + ((Length > 0) ? 1 : 0) + AsciiStrLen (Flag) >= Size) {
     AsciiStrCpyS (Args, Size, Saved);
     return FALSE;
   }
@@ -1071,10 +1071,10 @@ EdArrayLabel (
 {
   STATIC CONST CHAR8  *Names[] = { "BundlePath", "Path", "Name", "Identifier", "Comment", "Arguments" };
 
-  UINTN       Item;
-  XML_NODE    *Entry;
-  XML_NODE    *Enabled;
-  CONST CHAR8 *Title;
+  UINTN        Item;
+  XML_NODE     *Entry;
+  XML_NODE     *Enabled;
+  CONST CHAR8  *Title;
 
   Title   = "";
   Enabled = NULL;
@@ -1429,10 +1429,10 @@ EdEditInteger (
   IN     CONST CHAR8  *Name
   )
 {
-  ED_UI       *Ui;
-  CHAR8       Buffer[32];
-  CHAR8       Current[32];
-  UINT64      Value;
+  ED_UI   *Ui;
+  CHAR8   Buffer[32];
+  CHAR8   Current[32];
+  UINT64  Value;
 
   Ui = &Browser->State->Ui;
 
@@ -1891,15 +1891,15 @@ EdConfigEditor (
   IN OUT ED_STATE  *State
   )
 {
-  ED_UI              *Ui;
-  ED_BROWSER         *Browser;
-  EFI_STATUS         Status;
-  CONST CHAR8        *Reason;
-  OC_PICKER_KEY_INFO *Key;
-  UINTN              Visible;
-  INTN               Choice;
-  BOOLEAN            Saved;
-  BOOLEAN            Redraw;
+  ED_UI               *Ui;
+  ED_BROWSER          *Browser;
+  EFI_STATUS          Status;
+  CONST CHAR8         *Reason;
+  OC_PICKER_KEY_INFO  *Key;
+  UINTN               Visible;
+  INTN                Choice;
+  BOOLEAN             Saved;
+  BOOLEAN             Redraw;
 
   Ui = &State->Ui;
 
@@ -2076,59 +2076,59 @@ STATIC CONST ED_LIST_KIND  mKindEntries = {
   A kext of Kernel > Add as the kexts screen has it.
 **/
 typedef struct {
-  XML_NODE        *Dict;
+  XML_NODE       *Dict;
   //
   // Enabled as it is in the file, NULL if there is no boolean.
   //
-  XML_NODE        *Enabled;
-  BOOLEAN         WasEnabled;
+  XML_NODE       *Enabled;
+  BOOLEAN        WasEnabled;
   //
   // Enabled was not in the file and has been added.
   //
-  BOOLEAN         EnabledAdded;
+  BOOLEAN        EnabledAdded;
   //
   // Enabled is in the file, but it is not a boolean.
   //
-  BOOLEAN         EnabledBroken;
+  BOOLEAN        EnabledBroken;
   //
   // The kext has been moved by the user and is not where it was.
   //
-  BOOLEAN         Moved;
-  CHAR8           *Name;
-  CHAR8           *Comment;
+  BOOLEAN        Moved;
+  CHAR8          *Name;
+  CHAR8          *Comment;
   //
   // Why OpenCore does not add the kext, if its files are not in order.
   //
-  CONST CHAR8     *FileProblem;
+  CONST CHAR8    *FileProblem;
 } ED_KEXT_ROW;
 
 typedef struct {
-  ED_STATE           *State;
-  CONST ED_LIST_KIND *Kind;
-  EDIT_PLIST         Plist;
-  UINT32             Baseline;
-  XML_NODE           *Array;
-  UINT32             Count;
+  ED_STATE              *State;
+  CONST ED_LIST_KIND    *Kind;
+  EDIT_PLIST            Plist;
+  UINT32                Baseline;
+  XML_NODE              *Array;
+  UINT32                Count;
   //
   // By the index of the kext in the file.
   //
-  ED_KEXT_ROW        *Rows;
-  ED_KEXT_INFO       *Infos;
-  BOOLEAN            *Enabled;
-  ED_KEXT_PROBLEM    *Problems;
+  ED_KEXT_ROW           *Rows;
+  ED_KEXT_INFO          *Infos;
+  BOOLEAN               *Enabled;
+  ED_KEXT_PROBLEM       *Problems;
   //
   // For every position in the load order, the index of the kext in the file.
   //
-  UINT32             *Order;
-  UINT32             ProblemKexts;
+  UINT32                *Order;
+  UINT32                ProblemKexts;
   //
   // Identifiers of the kexts which Kernel > Force provides.
   //
-  CONST CHAR8        **Provided;
-  UINT32             ProvidedCount;
-  ED_LIST            List;
-  CHAR8              Status[200];
-  BOOLEAN            StatusIsError;
+  CONST CHAR8           **Provided;
+  UINT32                ProvidedCount;
+  ED_LIST               List;
+  CHAR8                 Status[200];
+  BOOLEAN               StatusIsError;
 } ED_KEXTS;
 
 STATIC
@@ -2155,13 +2155,13 @@ EdDictString (
 STATIC
 CONST CHAR8 *
 EdEntryName (
-  IN  CONST EDIT_PLIST     *Plist,
-  IN  XML_NODE             *Dict,
-  IN  CONST ED_LIST_KIND   *Kind
+  IN  CONST EDIT_PLIST    *Plist,
+  IN  XML_NODE            *Dict,
+  IN  CONST ED_LIST_KIND  *Kind
   )
 {
-  UINTN         Index;
-  CONST CHAR8   *Name;
+  UINTN        Index;
+  CONST CHAR8  *Name;
 
   for (Index = 0; (Index < ARRAY_SIZE (Kind->Names)) && (Kind->Names[Index] != NULL); ++Index) {
     Name = EdDictString (Plist, Dict, Kind->Names[Index]);
@@ -2296,8 +2296,8 @@ EdKextReadFiles (
   }
 
   if (  (ExecutablePath[0] != '\0')
-     && (!EdKextFilePath (Path, ARRAY_SIZE (Path), BundlePath, ExecutablePath)
-         || !OcStorageExistsFileUnicode (Kexts->State->Storage, Path)))
+     && (  !EdKextFilePath (Path, ARRAY_SIZE (Path), BundlePath, ExecutablePath)
+        || !OcStorageExistsFileUnicode (Kexts->State->Storage, Path)))
   {
     Row->FileProblem   = "the executable is missing";
     Info->FilesMissing = TRUE;
@@ -2417,10 +2417,10 @@ EdKextsFree (
 STATIC
 EFI_STATUS
 EdKextsLoad (
-  IN  ED_STATE        *State,
-  IN  CONST ED_LIST_KIND *Kind,
-  OUT ED_KEXTS    **Result,
-  OUT CONST CHAR8 **Reason
+  IN  ED_STATE            *State,
+  IN  CONST ED_LIST_KIND  *Kind,
+  OUT ED_KEXTS            **Result,
+  OUT CONST CHAR8         **Reason
   )
 {
   EFI_STATUS   Status;
@@ -2491,7 +2491,7 @@ EdKextsLoad (
         }
       }
 
-      Name = EdEntryName (&Kexts->Plist, Entry, Kexts->Kind);
+      Name                       = EdEntryName (&Kexts->Plist, Entry, Kexts->Kind);
       Kexts->Rows[Index].Name    = EdCopyString (Name[0] != '\0' ? Name : "(no name)");
       Kexts->Rows[Index].Comment = EdCopyString (EdDictString (&Kexts->Plist, Entry, "Comment"));
     } else {
@@ -3075,8 +3075,8 @@ EdKextsSave (
 STATIC
 VOID
 EdKextsEditor (
-  IN OUT ED_STATE        *State,
-  IN     CONST ED_LIST_KIND *Kind
+  IN OUT ED_STATE            *State,
+  IN     CONST ED_LIST_KIND  *Kind
   )
 {
   ED_UI               *Ui;
@@ -3185,7 +3185,6 @@ Done:
   EdKextsFree (Kexts);
 }
 
-
 //
 // Switches that are often needed, so they are all in one place.
 //
@@ -3197,55 +3196,55 @@ typedef struct {
 } ED_SWITCH;
 
 STATIC CONST ED_SWITCH  mSwitches[] = {
-  { "Booter", "Quirks", "AvoidRuntimeDefrag" },
-  { "Booter", "Quirks", "DevirtualiseMmio" },
-  { "Booter", "Quirks", "EnableSafeModeSlide" },
-  { "Booter", "Quirks", "EnableWriteUnprotector" },
-  { "Booter", "Quirks", "ProtectUefiServices" },
-  { "Booter", "Quirks", "ProvideCustomSlide" },
-  { "Booter", "Quirks", "RebuildAppleMemoryMap" },
-  { "Booter", "Quirks", "SetupVirtualMap" },
-  { "Booter", "Quirks", "SyncRuntimePermissions" },
-  { "Kernel", "Quirks", "AppleCpuPmCfgLock" },
-  { "Kernel", "Quirks", "AppleXcpmCfgLock" },
-  { "Kernel", "Quirks", "CustomSMBIOSGuid" },
-  { "Kernel", "Quirks", "DisableIoMapper" },
-  { "Kernel", "Quirks", "DisableLinkeditJettison" },
-  { "Kernel", "Quirks", "DisableRtcChecksum" },
-  { "Kernel", "Quirks", "ExtendBTFeatureFlags" },
-  { "Kernel", "Quirks", "ForceAquantiaEthernet" },
-  { "Kernel", "Quirks", "ForceSecureBootScheme" },
-  { "Kernel", "Quirks", "IncreasePciBarSize" },
-  { "Kernel", "Quirks", "LapicKernelPanic" },
-  { "Kernel", "Quirks", "PanicNoKextDump" },
-  { "Kernel", "Quirks", "PowerTimeoutKernelPanic" },
-  { "Kernel", "Quirks", "ProvideCurrentCpuInfo" },
-  { "Kernel", "Quirks", "ThirdPartyDrives" },
-  { "Kernel", "Quirks", "XhciPortLimit" },
-  { "UEFI", "Quirks", "EnableVectorAcceleration" },
-  { "UEFI", "Quirks", "ForgeUefiSupport" },
-  { "UEFI", "Quirks", "ReleaseUsbOwnership" },
-  { "UEFI", "Quirks", "RequestBootVarRouting" },
-  { "UEFI", "Quirks", "UnblockFsConnect" },
-  { "ACPI", "Quirks", "FadtEnableReset" },
-  { "ACPI", "Quirks", "NormalizeHeaders" },
-  { "ACPI", "Quirks", "RebaseRegions" },
-  { "ACPI", "Quirks", "ResetHwSig" },
-  { "ACPI", "Quirks", "ResetLogoStatus" },
-  { "ACPI", "Quirks", "SyncTableIds" },
-  { "Misc", "Boot", "HibernateSkipsPicker" },
-  { "Misc", "Boot", "HideAuxiliary" },
-  { "Misc", "Boot", "PickerAudioAssist" },
-  { "Misc", "Boot", "PollAppleHotKeys" },
-  { "Misc", "Boot", "ShowPicker" },
-  { "Misc", "Debug", "AppleDebug" },
-  { "Misc", "Debug", "ApplePanic" },
-  { "Misc", "Debug", "DisableWatchDog" },
-  { "Misc", "Debug", "SysReport" },
-  { "Misc", "Security", "AllowNvramReset" },
-  { "Misc", "Security", "AllowSetDefault" },
-  { "Misc", "Security", "AuthRestart" },
-  { "Misc", "Security", "BlacklistAppleUpdate" }
+  { "Booter", "Quirks",   "AvoidRuntimeDefrag"       },
+  { "Booter", "Quirks",   "DevirtualiseMmio"         },
+  { "Booter", "Quirks",   "EnableSafeModeSlide"      },
+  { "Booter", "Quirks",   "EnableWriteUnprotector"   },
+  { "Booter", "Quirks",   "ProtectUefiServices"      },
+  { "Booter", "Quirks",   "ProvideCustomSlide"       },
+  { "Booter", "Quirks",   "RebuildAppleMemoryMap"    },
+  { "Booter", "Quirks",   "SetupVirtualMap"          },
+  { "Booter", "Quirks",   "SyncRuntimePermissions"   },
+  { "Kernel", "Quirks",   "AppleCpuPmCfgLock"        },
+  { "Kernel", "Quirks",   "AppleXcpmCfgLock"         },
+  { "Kernel", "Quirks",   "CustomSMBIOSGuid"         },
+  { "Kernel", "Quirks",   "DisableIoMapper"          },
+  { "Kernel", "Quirks",   "DisableLinkeditJettison"  },
+  { "Kernel", "Quirks",   "DisableRtcChecksum"       },
+  { "Kernel", "Quirks",   "ExtendBTFeatureFlags"     },
+  { "Kernel", "Quirks",   "ForceAquantiaEthernet"    },
+  { "Kernel", "Quirks",   "ForceSecureBootScheme"    },
+  { "Kernel", "Quirks",   "IncreasePciBarSize"       },
+  { "Kernel", "Quirks",   "LapicKernelPanic"         },
+  { "Kernel", "Quirks",   "PanicNoKextDump"          },
+  { "Kernel", "Quirks",   "PowerTimeoutKernelPanic"  },
+  { "Kernel", "Quirks",   "ProvideCurrentCpuInfo"    },
+  { "Kernel", "Quirks",   "ThirdPartyDrives"         },
+  { "Kernel", "Quirks",   "XhciPortLimit"            },
+  { "UEFI",   "Quirks",   "EnableVectorAcceleration" },
+  { "UEFI",   "Quirks",   "ForgeUefiSupport"         },
+  { "UEFI",   "Quirks",   "ReleaseUsbOwnership"      },
+  { "UEFI",   "Quirks",   "RequestBootVarRouting"    },
+  { "UEFI",   "Quirks",   "UnblockFsConnect"         },
+  { "ACPI",   "Quirks",   "FadtEnableReset"          },
+  { "ACPI",   "Quirks",   "NormalizeHeaders"         },
+  { "ACPI",   "Quirks",   "RebaseRegions"            },
+  { "ACPI",   "Quirks",   "ResetHwSig"               },
+  { "ACPI",   "Quirks",   "ResetLogoStatus"          },
+  { "ACPI",   "Quirks",   "SyncTableIds"             },
+  { "Misc",   "Boot",     "HibernateSkipsPicker"     },
+  { "Misc",   "Boot",     "HideAuxiliary"            },
+  { "Misc",   "Boot",     "PickerAudioAssist"        },
+  { "Misc",   "Boot",     "PollAppleHotKeys"         },
+  { "Misc",   "Boot",     "ShowPicker"               },
+  { "Misc",   "Debug",    "AppleDebug"               },
+  { "Misc",   "Debug",    "ApplePanic"               },
+  { "Misc",   "Debug",    "DisableWatchDog"          },
+  { "Misc",   "Debug",    "SysReport"                },
+  { "Misc",   "Security", "AllowNvramReset"          },
+  { "Misc",   "Security", "AllowSetDefault"          },
+  { "Misc",   "Security", "AuthRestart"              },
+  { "Misc",   "Security", "BlacklistAppleUpdate"     }
 };
 
 typedef struct {
@@ -3401,7 +3400,7 @@ EdSwitchesEditor (
     EdUiStatus (Ui, Switches->StatusIsError ? Ui->AttrError : Ui->AttrHint, Switches->Status);
     EdUiHint (Ui, "Space: on/off   F10: save   Esc: back");
 
-    Key = EdUiWaitKey (Ui, FALSE);
+    Key                 = EdUiWaitKey (Ui, FALSE);
     Switches->Status[0] = '\0';
 
     switch (Key->OcKeyCode) {
@@ -3501,7 +3500,6 @@ EdListsMenu (
     EdKextsEditor (State, Kinds[Choice]);
   }
 }
-
 
 //
 // Text to read: the log, and the result of checking the config.
@@ -3665,10 +3663,10 @@ EdPanicViewer (
 STATIC
 VOID
 EdAppendLine (
-  IN OUT CHAR8       **Text,
-  IN OUT UINTN       *Length,
-  IN OUT UINTN       *Capacity,
-  IN     CONST CHAR8 *Line
+  IN OUT CHAR8        **Text,
+  IN OUT UINTN        *Length,
+  IN OUT UINTN        *Capacity,
+  IN     CONST CHAR8  *Line
   )
 {
   CHAR8  *Bigger;
@@ -3695,7 +3693,7 @@ EdAppendLine (
   }
 
   CopyMem (&(*Text)[*Length], Line, Size - 1);
-  *Length += Size - 1;
+  *Length             += Size - 1;
   (*Text)[(*Length)++] = '\n';
   (*Text)[*Length]     = '\0';
 }
@@ -3807,18 +3805,17 @@ EdCheckConfigScreen (
   FreePool (Text);
 }
 
-
 //
 // Comparing two configs, and going back to the config before the last save.
 //
 
 typedef struct {
-  EDIT_PLIST  *A;
-  EDIT_PLIST  *B;
-  CHAR8       *Text;
-  UINTN       Length;
-  UINTN       Capacity;
-  UINT32      Lines;
+  EDIT_PLIST    *A;
+  EDIT_PLIST    *B;
+  CHAR8         *Text;
+  UINTN         Length;
+  UINTN         Capacity;
+  UINT32        Lines;
 } ED_DIFF;
 
 #define ED_DIFF_MAX_LINES  300U
@@ -3826,10 +3823,10 @@ typedef struct {
 STATIC
 VOID
 EdDiffLine (
-  IN OUT ED_DIFF     *Diff,
-  IN     CONST CHAR8 *Mark,
-  IN     CONST CHAR8 *Path,
-  IN     CONST CHAR8 *Detail
+  IN OUT ED_DIFF      *Diff,
+  IN     CONST CHAR8  *Mark,
+  IN     CONST CHAR8  *Path,
+  IN     CONST CHAR8  *Detail
   )
 {
   CHAR8  Line[400];
@@ -3872,12 +3869,12 @@ EdAnyName (
 STATIC
 VOID
 EdDiffNodes (
-  IN OUT ED_DIFF  *Diff,
-  IN     XML_NODE *A,
-  IN     XML_NODE *B,
-  IN OUT CHAR8    *Path,
-  IN     UINTN    PathSize,
-  IN     UINTN    Depth
+  IN OUT ED_DIFF   *Diff,
+  IN     XML_NODE  *A,
+  IN     XML_NODE  *B,
+  IN OUT CHAR8     *Path,
+  IN     UINTN     PathSize,
+  IN     UINTN     Depth
   )
 {
   UINTN            Length;
@@ -4532,18 +4529,18 @@ EdMainMenu (
   IN OUT ED_STATE  *State
   )
 {
-  ED_UI             *Ui;
-  ED_BOOT_ARGS      Args;
-  CHAR8             Subtitle[160];
-  CHAR8             Name[128];
-  CHAR8             Texts[14][200];
-  CONST CHAR8       *Items[14];
-  BOOLEAN           Enabled[14];
-  UINTN             Count;
-  UINTN             Selected;
-  INTN              Choice;
-  CONST CHAR8       *Reason;
-  BOOLEAN           Replaced;
+  ED_UI         *Ui;
+  ED_BOOT_ARGS  Args;
+  CHAR8         Subtitle[160];
+  CHAR8         Name[128];
+  CHAR8         Texts[14][200];
+  CONST CHAR8   *Items[14];
+  BOOLEAN       Enabled[14];
+  UINTN         Count;
+  UINTN         Selected;
+  INTN          Choice;
+  CONST CHAR8   *Reason;
+  BOOLEAN       Replaced;
 
   Ui       = &State->Ui;
   Selected = 0;

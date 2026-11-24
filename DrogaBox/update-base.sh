@@ -86,7 +86,8 @@ PY
 }
 
 echo "== replaying"
-for c in $COMMITS; do
+while IFS= read -r c; do
+  [ -n "$c" ] || continue
   echo "   $(git log -1 --format='%h %an: %s' "$c")"
   if ! git cherry-pick --allow-empty "$c" >/dev/null 2>&1; then
     if resolve_changelog_only; then
@@ -97,14 +98,14 @@ for c in $COMMITS; do
       die "resolve it by hand in $WT (git cherry-pick $c), then run the tests; or wait for a newer official commit"
     fi
   fi
-done
+done <<< "$COMMITS"
 
 echo "== editor tests"
 UDK_PATH="$MAIN/UDK" DrogaBox/run-tests.sh || die "the editor tests fail on the new base (worktree kept in $WT)"
 
 if [ "$BUILD" = 1 ]; then
   echo "== building OpenCore (RELEASE + DEBUG)"
-  command -v nasm >/dev/null && command -v mtoc >/dev/null || die "nasm and mtoc must be in PATH"
+  if ! command -v nasm >/dev/null || ! command -v mtoc >/dev/null; then die "nasm and mtoc must be in PATH"; fi
   # The build wants its own UDK inside the checkout; clone the one of the main checkout (APFS clone, cheap).
   [ -f "$MAIN/UDK/UDK.ready" ] || die "$MAIN/UDK is not ready; do a build there once first"
   cp -pcR "$MAIN/UDK" "$WT/UDK" || die "cannot copy the UDK"
@@ -147,5 +148,5 @@ fi
 git worktree remove --force "$WT" >/dev/null 2>&1; git branch -D "$NEXT" >/dev/null 2>&1
 echo
 echo "Done. '$WORK' is now on official $(git rev-parse --short "$NEW_BASE") ($NEW_DATE). Old tip: tag $TAG"
-[ "$BUILD" = 1 ] && echo "Built zips: $DEST (nothing was copied to any EFI)"
+if [ "$BUILD" = 1 ]; then echo "Built zips: $DEST (nothing was copied to any EFI)"; fi
 exit 0

@@ -290,9 +290,9 @@ EditPlistSetInteger (
 **/
 EFI_STATUS
 EditPlistSetString (
-  IN OUT EDIT_PLIST  *Plist,
-  IN     XML_NODE    *Node,
-  IN     CONST CHAR8 *Value
+  IN OUT EDIT_PLIST   *Plist,
+  IN     XML_NODE     *Node,
+  IN     CONST CHAR8  *Value
   );
 
 /**

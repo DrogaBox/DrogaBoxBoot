@@ -1493,7 +1493,7 @@ OcLoadPickerHotKeys (
 /// Report plus and minus keys (including the ones of the numeric keypad), which the pickers do not use.
 /// Only valid together with navigation keys, not typing.
 ///
-#define OC_PICKER_KEYS_PLUS_MINUS   BIT4
+#define OC_PICKER_KEYS_PLUS_MINUS  BIT4
 
 #define OC_PICKER_KEYS_FOR_TYPING   \
   (OC_PICKER_KEYS_TYPING | OC_PICKER_KEYS_VOICE_OVER | OC_PICKER_KEYS_TAB_CONTROL)
