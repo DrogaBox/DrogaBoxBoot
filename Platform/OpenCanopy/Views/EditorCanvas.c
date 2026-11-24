@@ -716,7 +716,7 @@ CanvasBegin (
   mPadX          = CANVAS_PAD_X * Scale;
   mPadY          = CANVAS_PAD_Y * Scale;
   mCanvasColumns = CANVAS_COLUMNS;
-  mSheetWidth    = mCanvasColumns * mCellWidth + 2 * mPadX;
+  mSheetWidth    = (UINT32)mCanvasColumns * mCellWidth + 2 * mPadX;
   MaxRows        = (mCanvasHeight * 85 / 100 - 2 * mPadY) / mLineHeight;
   mCanvasRows    = MIN (MaxRows, CANVAS_MAX_ROWS);
   mSheetHeight   = (UINT32)mCanvasRows * mLineHeight + 2 * mPadY;
