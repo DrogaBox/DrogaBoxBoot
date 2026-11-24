@@ -25,7 +25,14 @@
   OpenCoreConfigSelect.c
   OpenCoreDevProps.c
   OpenCoreEditor.c
+  OpenCoreEditorBootArgs.c
+  OpenCoreEditorBrowser.c
+  OpenCoreEditorConfigs.c
+  OpenCoreEditorLists.c
   OpenCoreEditorInternal.h
+  OpenCoreEditorPrivate.h
+  OpenCoreEditorQuirks.c
+  OpenCoreEditorText.c
   OpenCoreEditorUi.c
   OpenCoreEditorUi.h
   OpenCoreEditPlist.c
