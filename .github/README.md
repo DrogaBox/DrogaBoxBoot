@@ -70,6 +70,50 @@ All of these screenshots come from the real code. `Utilities/TestCanopy` and `Ut
 run it on a Mac with a fake screen and scripted keys, and `DrogaBox/make-screenshots.sh` saves the
 pictures.
 
+## What's changed from OpenCore
+
+Every change is a commit on top of the official base (`git log ebea824..main`). By area:
+
+**OpenCanopy (`Platform/OpenCanopy`)**
+- `Output/OutputStGop.c`: a zoomed output. The picker draws at scale 2 into a virtual screen 4/3 the size of
+  the real one, and each 4×4 block is averaged down to 3×3 as it goes to the screen. It only kicks in when
+  the screen is at least 1000 px tall, under 4 megapixels, and divisible by 3 both ways.
+- `GuiApp.c`: picks 1x, 2x or zoomed 2x at start. It falls back to 1x if the theme has no 2x images or
+  bit `0x0400` is set, and scales the background by 4/3 for the zoom (`GuiCreateScaledImage` in
+  `Images.c`). `PickerVariant` `Auto` prefers `DrogaBox\AETHER` when it is installed.
+- `Views/BootPicker.c`: the help line under the entries (countdown, Enter, Ctrl+Enter only if
+  setting a default is allowed, F2 only if the editor is on) and the "DrogaBoxBoot, made by DrogaBox"
+  line at the bottom left. `OpenCanopy.c` keeps the elapsed seconds for the countdown.
+- `Views/Common.c`: names under the Restart and Shut Down buttons.
+- `Views/EditorCanvas.c` (new): the sheet the F2 editor draws on. 80 columns, the theme's font, selected
+  row in blue, keys drawn as caps, the picker dimmed behind it. `OcBootstrap.c` hands it to OpenCore.
+- `Blending.c`, `OpenCanopy.c`: `PIXEL_TO_UINT32` casts each byte before shifting. The old macro shifted
+  a signed int into the sign bit, which UBSan flags.
+
+**OpenCore (`Library/OcMainLib`, `Include`)**
+- The F2 editor, config chooser and kexts screen (`OpenCoreEditor.c`, `OpenCoreConfigSelect.c`,
+  `OpenCoreKextOrder.c`, `OpenCoreEditPlist.c`, `OpenCoreNvram.c`) come from Illia Haidai's two
+  commits. On top of them I changed the title and the drawing layer below.
+- `OpenCoreEditorUi.c`: the editor draws through a small interface (`OC_EDITOR_CANVAS` in
+  `OcBootManagementLib.h`: begin, end, clear, put text with a role, flush). It uses OpenCanopy's sheet
+  when there is one and the text console otherwise.
+- `OcBootManagementLib.h`: `OC_ATTR_NO_ZOOM` (`0x0400`) in `PickerAttributes`, and the `EditorCanvas`
+  field in the picker context.
+- `OcXmlLib.c`: source ranges of parsed nodes, so a save can rewrite only the values that changed and
+  keep your formatting.
+
+**Theme, docs, packaging**
+- `DrogaBox/Theme/AETHER`: GoldenGate icons plus my background. `build_oc.tool` puts it in the zip under
+  `Resources/Image/DrogaBox/AETHER`.
+- `Docs/Configuration.tex`: `AllowPickerEdit`, the editor, bit `0x0400` and AETHER with `Auto`.
+
+**Tests and tools**
+- `Utilities/TestCanopy` (new): runs the real OpenCanopy on a Mac with a fake 1920×1080 screen and
+  scripted keys and dumps the frames. It can also replay what the editor drew and draw it on the sheet.
+- `Utilities/TestPickerEditor` and `Utilities/TestEditPlist`: 1193 checks for the editor and 84455 for
+  the plist writer. They run plain and with ASan/UBSan through `DrogaBox/run-tests.sh`.
+- `DrogaBox/update-base.sh`: moves the fork to a newer OpenCore (see below).
+
 ## Install
 
 Try it on a USB stick first and keep a copy of your `EFI` folder. This is your boot loader.
