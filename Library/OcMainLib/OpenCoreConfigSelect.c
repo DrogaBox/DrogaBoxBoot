@@ -346,6 +346,7 @@ OcMiscLoadConfig (
 {
   EFI_STATUS  Status;
   CHAR16      Chosen[OC_CONFIG_MAX_NAME + 1];
+  CHAR16      Backup[ARRAY_SIZE (OPEN_CORE_CONFIG_PATH) + ARRAY_SIZE (OC_CONFIG_BACKUP_SUFFIX)];
   BOOLEAN     Persistent;
 
   mConfigSource  = OcConfigSourceDefault;
@@ -387,7 +388,24 @@ OcMiscLoadConfig (
     }
   }
 
-  return ConfigLoadFile (Storage, OPEN_CORE_CONFIG_PATH, Config);
+  Status = ConfigLoadFile (Storage, OPEN_CORE_CONFIG_PATH, Config);
+  if (!EFI_ERROR (Status) || Storage->HasVault) {
+    return Status;
+  }
+
+  //
+  // Without a configuration OpenCore cannot start at all. The editor keeps the previous
+  // default configuration next to it when it saves, and it is only missing or cut short
+  // if the save was interrupted, so the backup is the last one that worked.
+  //
+  UnicodeSPrint (Backup, sizeof (Backup), L"%s%s", OPEN_CORE_CONFIG_PATH, OC_CONFIG_BACKUP_SUFFIX);
+  DEBUG ((DEBUG_WARN, "OC: Cannot use %s - %r, trying %s\n", OPEN_CORE_CONFIG_PATH, Status, Backup));
+  if (!EFI_ERROR (ConfigLoadFile (Storage, Backup, Config))) {
+    mConfigSource = OcConfigSourceBackup;
+    return EFI_SUCCESS;
+  }
+
+  return Status;
 }
 
 CONST CHAR16 *

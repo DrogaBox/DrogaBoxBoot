@@ -1,7 +1,7 @@
 # What the editor writes, and what a power cut would leave
 
-Checked 2026-11-24 against `main` (after the split into one file per screen). Read from the code; none
-of it has been tried with a real power cut.
+Checked 2026-11-24 on the branch `d7-config-backup`, which starts with `config.plist.bak` when `config.plist`
+cannot be loaded. Read from the code and tested on the Mac (below).
 
 ## Choosing a config (`OcMiscSetConfigChoice`, `OpenCoreConfigSelect.c`)
 
@@ -29,25 +29,31 @@ Before step 1 the new text has already been parsed, and it is refused if it has 
 file it replaces.
 
 - Cut during step 1: `config.plist` is untouched. Safe; `config.plist.bak` may be missing or cut.
-- **Cut during step 2, between the delete and the end of the write: `config.plist` is missing or cut.**
-  At the next start `OcMiscLoadConfig` fails and OpenCore stops in `CpuDeadLoop`
-  (`OpenCoreMisc.c`, after `OcMiscLoadConfig`). The machine hangs before the picker. The previous file
-  is whole in `config.plist.bak`, but only another boot disk (the USB stick) can put it back.
+- Cut during step 2, between the delete and the end of the write: `config.plist` is missing or cut.
+  At the next start `OcMiscLoadConfig` cannot load it and loads `config.plist.bak` instead, which
+  step 1 had written and checked. The editor's main menu and the Config files screen say so, and
+  "Undo the last save" puts the backup back as `config.plist`. Safe.
 - The read-back in steps 1 and 2 may come from the firmware's cache rather than the disk, so it shows
   that the write was accepted, not that it reached the disk.
 
-## Proposal (not done: it needs the owner's yes)
+## Starting with the backup (`OcMiscLoadConfig`)
 
-Two parts, either one helps:
+Only when `config.plist` itself cannot be loaded (missing, not a plist, cut short), after a chosen
+config has failed or when there is none. Never with a vault: the vault only signs `config.plist`. The
+name in use stays `config.plist`, the file to put right, and `OcMiscGetConfigSource` returns
+`OcConfigSourceBackup`.
 
-1. **At boot**, in `OcMiscLoadConfig`: if `config.plist` cannot be loaded, try `config.plist.bak` before
-   stopping, and show "started with the backup" in the editor's main menu, the way a failed chosen
-   config is shown today. This closes the gap completely, but it changes the code that runs on every
-   start, which stage 2 said it would leave alone.
-2. **In the editor**: write the new file as `config.plist.new`, check it, then delete `config.plist` and
-   rename `config.plist.new` to `config.plist` (`SetInfo` with the new name). The window shrinks from a
-   whole write to one rename. If the firmware's FAT driver refuses the rename, it falls back to the
-   current steps. It cannot close the window on its own: FAT cannot rename over an existing file.
+While OpenCore runs from the backup, the editor never writes `config.plist.bak`: it is the only
+config known to work. Every save then writes `config.plist` alone, so a cut leaves the backup as it
+was, and the next start uses it again.
 
-Both can be tested on the Mac by making the harness's fake file system stop after the n-th write, for
-every n, and checking that the next start finds a config it can load.
+## How it is tested
+
+`TestPickerEditor` has a fake file system that can cut the power after any number of writes and
+deletes: the next write leaves half the file, and nothing after it is written. `TestPowerCut` does it
+at every step of a save (with an old backup and with none) and of putting the backup back (with
+`config.plist` missing and broken), and each time loads the config the way OpenCore does at start. It
+always gets a config, the old one or the new one. With the fallback at start taken out, 21 checks
+fail; with the editor allowed to write the backup while running from it, 4 fail.
+
+None of it has been tried with a real power cut.

@@ -192,8 +192,12 @@ EdVerifyFile (
 /**
   Replace config.plist, with the previous file saved next to it.
 
+  While OpenCore runs from the backup, because config.plist could not be loaded, the
+  backup is the only configuration known to work and it is left alone: only config.plist
+  is written.
+
   @param[in]  Storage  OpenCore storage.
-  @param[in]  Old      Contents of the file being replaced.
+  @param[in]  Old      Contents of the file being replaced, NULL if there is none.
   @param[in]  OldSize  Size of Old.
   @param[in]  New      New contents.
   @param[in]  NewSize  Size of New.
@@ -235,18 +239,22 @@ EdWriteConfig (
 
   //
   // First the backup, the configuration is not touched if it cannot be made.
+  // OpenCore starts with the backup if config.plist is missing or cut short, so from
+  // here on there is always one of the two it can start with.
   //
-  OcDeleteFile (Root, BackupPath);
-  Status = OcSetFileData (Root, BackupPath, Old, OldSize);
-  if (!EFI_ERROR (Status) && !EdVerifyFile (Root, BackupPath, Old, OldSize)) {
-    Status = EFI_VOLUME_CORRUPTED;
-  }
-
-  if (EFI_ERROR (Status)) {
-    DEBUG ((DEBUG_WARN, "OCE: Failed to write backup - %r\n", Status));
+  if ((Old != NULL) && (OcMiscGetConfigSource (NULL) != OcConfigSourceBackup)) {
     OcDeleteFile (Root, BackupPath);
-    Root->Close (Root);
-    return Status;
+    Status = OcSetFileData (Root, BackupPath, Old, OldSize);
+    if (!EFI_ERROR (Status) && !EdVerifyFile (Root, BackupPath, Old, OldSize)) {
+      Status = EFI_VOLUME_CORRUPTED;
+    }
+
+    if (EFI_ERROR (Status)) {
+      DEBUG ((DEBUG_WARN, "OCE: Failed to write backup - %r\n", Status));
+      OcDeleteFile (Root, BackupPath);
+      Root->Close (Root);
+      return Status;
+    }
   }
 
   OcDeleteFile (Root, ConfigPath);
@@ -258,7 +266,9 @@ EdWriteConfig (
   if (EFI_ERROR (Status)) {
     DEBUG ((DEBUG_WARN, "OCE: Failed to write configuration - %r, putting the previous one back\n", Status));
     OcDeleteFile (Root, ConfigPath);
-    OcSetFileData (Root, ConfigPath, Old, OldSize);
+    if (Old != NULL) {
+      OcSetFileData (Root, ConfigPath, Old, OldSize);
+    }
   }
 
   Root->Close (Root);
@@ -661,6 +671,16 @@ OcMiscShowEditor (
   State->Picker  = Context;
   State->Storage = Context->StorageContext;
   State->Entry   = BootEntry;
+
+  if (OcMiscGetConfigSource (NULL) == OcConfigSourceBackup) {
+    EdSetStatus (
+      State->Status,
+      sizeof (State->Status),
+      &State->StatusIsError,
+      TRUE,
+      "config.plist failed to load, started with config.plist.bak (Undo puts it back)"
+      );
+  }
 
   Status = EdUiInit (&State->Ui, Context);
   if (EFI_ERROR (Status)) {

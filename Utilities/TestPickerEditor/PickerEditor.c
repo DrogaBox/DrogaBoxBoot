@@ -34,6 +34,7 @@
 #include <unistd.h>
 
 #include "../../Library/OcMainLib/OpenCoreEditorInternal.h"
+#include "../../Library/OcMainLib/OpenCoreEditorPrivate.h"
 
 STATIC UINT32  mFailures;
 STATIC UINT32  mChecks;
@@ -833,6 +834,43 @@ HasBackup (
 STATIC CHAR8    mDirectory[256];
 STATIC BOOLEAN  mFileWriteProtected;
 
+//
+// A power cut: this many more deletes and writes go through, the next one is cut off
+// halfway (a write leaves the first half of the file, a delete does nothing), and nothing
+// is written after it. -1 is no power cut.
+//
+STATIC INT32    mFileOpsLeft = -1;
+STATIC BOOLEAN  mPowerWentOut;
+
+typedef enum {
+  FileOpDone,
+  FileOpCut,
+  FileOpNoPower
+} FILE_OP;
+
+STATIC
+FILE_OP
+NextFileOp (
+  VOID
+  )
+{
+  if (mPowerWentOut) {
+    return FileOpNoPower;
+  }
+
+  if (mFileOpsLeft < 0) {
+    return FileOpDone;
+  }
+
+  if (mFileOpsLeft == 0) {
+    mPowerWentOut = TRUE;
+    return FileOpCut;
+  }
+
+  --mFileOpsLeft;
+  return FileOpDone;
+}
+
 STATIC
 VOID
 HostPath (
@@ -884,6 +922,10 @@ TestDeleteFile (
     return EFI_WRITE_PROTECTED;
   }
 
+  if (NextFileOp () != FileOpDone) {
+    return EFI_DEVICE_ERROR;
+  }
+
   return unlink (Path) == 0 ? EFI_SUCCESS : EFI_NOT_FOUND;
 }
 
@@ -895,12 +937,18 @@ TestSetFileData (
   IN UINT32             Size
   )
 {
-  CHAR8  Path[512];
-  FILE   *File;
+  CHAR8    Path[512];
+  FILE     *File;
+  FILE_OP  Op;
 
   HostPath (FileName, Path, sizeof (Path));
   if (mFileWriteProtected) {
     return EFI_WRITE_PROTECTED;
+  }
+
+  Op = NextFileOp ();
+  if (Op == FileOpNoPower) {
+    return EFI_DEVICE_ERROR;
   }
 
   File = fopen (Path, "wb");
@@ -908,9 +956,9 @@ TestSetFileData (
     return EFI_DEVICE_ERROR;
   }
 
-  fwrite (Buffer, 1, Size, File);
+  fwrite (Buffer, 1, Op == FileOpCut ? Size / 2 : Size, File);
   fclose (File);
-  return EFI_SUCCESS;
+  return Op == FileOpCut ? EFI_DEVICE_ERROR : EFI_SUCCESS;
 }
 
 STATIC
@@ -5016,6 +5064,252 @@ TestBrokenConfig (
   WriteTestFile ("config.plist", Original, Size);
 }
 
+/**
+  Whether a test file has these contents.
+**/
+STATIC
+BOOLEAN
+TestFileIs (
+  IN CONST CHAR8  *Name,
+  IN CONST VOID   *Data,
+  IN UINT32       Size
+  )
+{
+  VOID     *Read;
+  UINT32   ReadSize;
+  BOOLEAN  Same;
+
+  Read = ReadTestFile (Name, &ReadSize);
+  if (Read == NULL) {
+    return FALSE;
+  }
+
+  Same = ReadSize == Size && CompareMem (Read, Data, Size) == 0;
+  FreePool (Read);
+  return Same;
+}
+
+/**
+  OpenCore starts with config.plist.bak when config.plist cannot be loaded.
+**/
+STATIC
+VOID
+TestConfigBackupStart (
+  IN CONST VOID  *Original,
+  IN UINT32      OriginalSize
+  )
+{
+  EFI_STATUS  Status;
+  UINT32      Timeout;
+
+  RemoveTestFile ("config.choice");
+  RemoveTestFile ("config2.plist");
+  WriteConfigVariant ("config.plist.bak", 33, TRUE);
+
+  //
+  // A good config.plist is used, whatever the backup is.
+  //
+  WriteTestFile ("config.plist", Original, OriginalSize);
+  Timeout = LoadConfigTimeout (&Status);
+  CHECK (!EFI_ERROR (Status) && Timeout == 5 && ConfigIs (L"config.plist", OcConfigSourceDefault));
+
+  //
+  // Missing, not a plist, cut short: the backup is used, and the name stays config.plist,
+  // the file to put right.
+  //
+  RemoveTestFile ("config.plist");
+  Timeout = LoadConfigTimeout (&Status);
+  CHECK (!EFI_ERROR (Status) && Timeout == 33 && ConfigIs (L"config.plist", OcConfigSourceBackup));
+
+  WriteTestFile ("config.plist", "not a plist", 11);
+  Timeout = LoadConfigTimeout (&Status);
+  CHECK (!EFI_ERROR (Status) && Timeout == 33 && ConfigIs (L"config.plist", OcConfigSourceBackup));
+
+  WriteTestFile ("config.plist", Original, OriginalSize / 2);
+  Timeout = LoadConfigTimeout (&Status);
+  CHECK (!EFI_ERROR (Status) && Timeout == 33 && ConfigIs (L"config.plist", OcConfigSourceBackup));
+
+  //
+  // A chosen config that fails, then config.plist that fails: still the backup.
+  //
+  WriteMarker ("config9.plist\nkeep\n");
+  RemoveTestFile ("config.plist");
+  Timeout = LoadConfigTimeout (&Status);
+  CHECK (!EFI_ERROR (Status) && Timeout == 33 && ConfigIs (L"config.plist", OcConfigSourceBackup));
+  RemoveTestFile ("config.choice");
+
+  //
+  // Without a usable backup OpenCore still cannot start.
+  //
+  WriteTestFile ("config.plist.bak", "not a plist", 11);
+  LoadConfigTimeout (&Status);
+  CHECK (EFI_ERROR (Status));
+  RemoveTestFile ("config.plist.bak");
+  LoadConfigTimeout (&Status);
+  CHECK (EFI_ERROR (Status));
+
+  //
+  // The vault only knows config.plist, so the backup is never used with it.
+  //
+  WriteConfigVariant ("config.plist.bak", 33, TRUE);
+  mStorage.HasVault = TRUE;
+  LoadConfigTimeout (&Status);
+  CHECK (EFI_ERROR (Status));
+  mStorage.HasVault = FALSE;
+
+  //
+  // The editor says so, and Undo puts the backup back as config.plist without touching it.
+  //
+  WriteTestFile ("config.plist.bak", Original, OriginalSize);
+  LoadConfigTimeout (&Status);
+  CHECK (!EFI_ERROR (Status) && ConfigIs (L"config.plist", OcConfigSourceBackup));
+  ScriptReset ();
+  Press (KeyDown, MENU_UNDO);
+  Press (KeyEnter, 1);
+  Press (KeyEnter, 1);                 // yes
+  Press (KeyEsc, 1);
+  RUN_EDITOR (NULL);
+  CHECK (SeenOnScreen ("config.plist failed to load, started with config.plist.bak"));
+  CHECK (SeenOnScreen ("(it failed, started with its .bak)"));
+  CHECK (SeenOnScreen ("The backup stays as it is"));
+  CHECK (SeenOnScreen ("The previous config is back, restart to apply it"));
+  CHECK (TestFileIs ("config.plist", Original, OriginalSize));
+  CHECK (TestFileIs ("config.plist.bak", Original, OriginalSize));
+  Timeout = LoadConfigTimeout (&Status);
+  CHECK (!EFI_ERROR (Status) && Timeout == 5 && ConfigIs (L"config.plist", OcConfigSourceDefault));
+
+  //
+  // The same with a config.plist that is there but broken: it does not become the backup.
+  //
+  WriteTestFile ("config.plist", "not a plist", 11);
+  LoadConfigTimeout (&Status);
+  CHECK (!EFI_ERROR (Status) && ConfigIs (L"config.plist", OcConfigSourceBackup));
+  ScriptReset ();
+  Press (KeyDown, MENU_UNDO);
+  Press (KeyEnter, 1);
+  Press (KeyEnter, 1);                 // yes
+  Press (KeyEsc, 1);
+  RUN_EDITOR (NULL);
+  CHECK (TestFileIs ("config.plist", Original, OriginalSize));
+  CHECK (TestFileIs ("config.plist.bak", Original, OriginalSize));
+
+  WriteTestFile ("config.plist", Original, OriginalSize);
+  RemoveTestFile ("config.plist.bak");
+  LoadConfigTimeout (NULL);
+}
+
+/**
+  Cut the power after every number of writes and deletes in a save, and start again each
+  time: OpenCore has to find a config it can start with, the old one or the new one.
+  Present and Backup are config.plist and config.plist.bak before the save (NULL for no
+  file), Old is what the editor passes as the file being replaced.
+**/
+STATIC
+VOID
+PowerCutAtEveryStep (
+  IN CONST CHAR8  *What,
+  IN CONST VOID   *Present,
+  IN UINT32       PresentSize,
+  IN CONST VOID   *Old,
+  IN UINT32       OldSize,
+  IN CONST VOID   *New,
+  IN UINT32       NewSize,
+  IN CONST VOID   *Backup,
+  IN UINT32       BackupSize,
+  IN UINT32       OldTimeout,
+  IN UINT32       NewTimeout
+  )
+{
+  EFI_STATUS  Status;
+  EFI_STATUS  SaveStatus;
+  UINT32      Timeout;
+  INT32       Steps;
+  UINT32      Before;
+
+  for (Steps = 0; Steps < 32; ++Steps) {
+    if (Present != NULL) {
+      WriteTestFile ("config.plist", Present, PresentSize);
+    } else {
+      RemoveTestFile ("config.plist");
+    }
+
+    if (Backup != NULL) {
+      WriteTestFile ("config.plist.bak", Backup, BackupSize);
+    } else {
+      RemoveTestFile ("config.plist.bak");
+    }
+
+    LoadConfigTimeout (NULL);
+
+    mFileOpsLeft  = Steps;
+    mPowerWentOut = FALSE;
+    SaveStatus    = EdWriteConfig (&mStorage, Old, OldSize, New, NewSize);
+    mFileOpsLeft  = -1;
+
+    Before  = mFailures;
+    Timeout = LoadConfigTimeout (&Status);
+    CHECK (!EFI_ERROR (Status) && (Timeout == OldTimeout || Timeout == NewTimeout));
+    if (mFailures != Before) {
+      printf ("  (%s, power cut after %d writes and deletes)\n", What, (int)Steps);
+    }
+
+    if (!mPowerWentOut) {
+      //
+      // The save had all it needed: the new config is in place.
+      //
+      CHECK (!EFI_ERROR (SaveStatus) && Timeout == NewTimeout && ConfigIs (L"config.plist", OcConfigSourceDefault));
+      CHECK (Steps >= 1);
+      break;
+    }
+
+    mPowerWentOut = FALSE;
+  }
+
+  CHECK (Steps < 32);
+}
+
+STATIC
+VOID
+TestPowerCut (
+  IN CONST VOID  *Original,
+  IN UINT32      OriginalSize
+  )
+{
+  VOID    *Changed;
+  UINT32  ChangedSize;
+  VOID    *Stale;
+  UINT32  StaleSize;
+
+  RemoveTestFile ("config.choice");
+  WriteConfigVariant ("variant.plist", 44, TRUE);
+  Changed = ReadTestFile ("variant.plist", &ChangedSize);
+  WriteConfigVariant ("variant.plist", 66, TRUE);
+  Stale = ReadTestFile ("variant.plist", &StaleSize);
+  RemoveTestFile ("variant.plist");
+  CHECK (Changed != NULL && Stale != NULL);
+  if ((Changed == NULL) || (Stale == NULL)) {
+    return;
+  }
+
+  //
+  // A save from the editor, with an old backup from an earlier save, and with none.
+  //
+  PowerCutAtEveryStep ("save", Original, OriginalSize, Original, OriginalSize, Changed, ChangedSize, Stale, StaleSize, 5, 44);
+  PowerCutAtEveryStep ("first save", Original, OriginalSize, Original, OriginalSize, Changed, ChangedSize, NULL, 0, 5, 44);
+
+  //
+  // Putting the backup back after starting with it: config.plist missing, or broken.
+  //
+  PowerCutAtEveryStep ("repair of a missing config.plist", NULL, 0, NULL, 0, Original, OriginalSize, Original, OriginalSize, 5, 5);
+  PowerCutAtEveryStep ("repair of a broken config.plist", "not a plist", 11, "not a plist", 11, Original, OriginalSize, Original, OriginalSize, 5, 5);
+
+  FreePool (Changed);
+  FreePool (Stale);
+  WriteTestFile ("config.plist", Original, OriginalSize);
+  RemoveTestFile ("config.plist.bak");
+  LoadConfigTimeout (NULL);
+}
+
 int
 ENTRY_POINT (
   int   argc,
@@ -5087,6 +5381,8 @@ ENTRY_POINT (
   TestConsoleSizes (Original, Size);
   TestLongNames (Original, Size);
   TestBrokenConfig (Original, Size);
+  TestConfigBackupStart (Original, Size);
+  TestPowerCut (Original, Size);
   free (Original);
 
   printf ("%u checks, %u failures\n", mChecks, mFailures);

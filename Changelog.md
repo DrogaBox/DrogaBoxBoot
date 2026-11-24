@@ -8,6 +8,7 @@ OpenCore Changelog
 - Added `AllowPickerEdit` Security option: `F2` in the builtin picker and OpenCanopy opens an options editor to change boot arguments (typed or with a list of usual flags; for a single boot or permanently) and `config.plist` (switches, numbers, strings, data) without leaving OpenCore
 - Added `Kernel panic log` screen to the options editor to read a panic saved in NVRAM
 - Added `Compare configs` and `Undo the last save` to the options editor, and lists of kernel patches, blocks and booter patches
+- Added starting with `config.plist.bak` when `config.plist` cannot be loaded (for example after a power cut while the editor saved it) instead of stopping, shown in the options editor
 - Added `Check the config` and `Log` screens to the options editor
 - Added `Drivers, ACPI, Tools` lists (on/off and order) and a `Quirks` screen with the usual switches to the options editor
 - Added `Kexts` item to the options editor: all kexts of `Kernel` -> `Add` in the load order, switching them on and off, moving them with `+` and `-`, and a check of the order with `OSBundleLibraries` of the kexts, which `F5` can fix

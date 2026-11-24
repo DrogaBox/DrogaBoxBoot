@@ -376,6 +376,13 @@ OcMiscGetVersionString (
 #define OC_CONFIG_CHOICE_PATH  L"config.choice"
 
 /**
+  Added to the name of a configuration for the copy of it from before the last save in
+  the editor. OpenCore starts with the backup of the default configuration when the
+  default one cannot be loaded.
+**/
+#define OC_CONFIG_BACKUP_SUFFIX  L".bak"
+
+/**
   Where the configuration in use comes from.
 **/
 typedef enum {
@@ -394,7 +401,13 @@ typedef enum {
   ///
   /// A choice was made, but it could not be used, and the default is in use instead.
   ///
-  OcConfigSourceFallback
+  OcConfigSourceFallback,
+  ///
+  /// The default could not be loaded either, and its backup from the last save in the
+  /// editor, OPEN_CORE_CONFIG_PATH with OC_CONFIG_BACKUP_SUFFIX, is in use instead.
+  /// The name of the configuration stays the default one, the file to repair.
+  ///
+  OcConfigSourceBackup
 } OC_CONFIG_SOURCE;
 
 /**
