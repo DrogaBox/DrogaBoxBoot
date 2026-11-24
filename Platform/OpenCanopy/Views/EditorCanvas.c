@@ -352,7 +352,7 @@ CanvasDrawPiece (
           &mKeyColour
           );
         CanvasDrawText (&Text[Start], Length, X + CANVAS_KEY_PAD_X * mGuiContext.Scale, Y, MaxRight, &mRoleColours[OcEditorRoleNormal], FALSE);
-        X += Width + 2 * CANVAS_KEY_PAD_X * mGuiContext.Scale + CANVAS_KEY_PAD_X * mGuiContext.Scale;
+        X    += Width + 2 * CANVAS_KEY_PAD_X * mGuiContext.Scale + CANVAS_KEY_PAD_X * mGuiContext.Scale;
         Start = Colon + 2;
       }
     }
@@ -730,8 +730,8 @@ CanvasBegin (
   //
   // Centre the sheet on a 4 pixel grid, so that its blits stay whole blocks with zoom.
   //
-  mSheetX = ((mCanvasWidth - mSheetWidth) / 2) & ~3U;
-  mSheetY = ((mCanvasHeight - mSheetHeight) / 2) & ~3U;
+  mSheetX      = ((mCanvasWidth - mSheetWidth) / 2) & ~3U;
+  mSheetY      = ((mCanvasHeight - mSheetHeight) / 2) & ~3U;
   mSheetWidth  = ALIGN_VALUE (mSheetWidth, 4);
   mSheetHeight = ALIGN_VALUE (mSheetHeight, 4);
 

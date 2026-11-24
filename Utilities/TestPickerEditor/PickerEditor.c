@@ -1150,9 +1150,9 @@ OcProcessVariableGuid (
 // ---------------------------------------------------------------------------------
 //
 
-STATIC UINT8                            *mSample;
-STATIC UINT32                           mSampleSize;
-STATIC OC_PICKER_CONTEXT                *mPicker;
+STATIC UINT8              *mSample;
+STATIC UINT32             mSampleSize;
+STATIC OC_PICKER_CONTEXT  *mPicker;
 
 //
 // A canvas which writes what the editor draws to a file (PICKER_TEST_CANVAS=<file>), for
@@ -1234,7 +1234,7 @@ LogCanvasFlush (
   fprintf (mCanvasLog, "F\n");
 }
 
-STATIC OC_EDITOR_CANVAS  mLogCanvas = {
+STATIC OC_EDITOR_CANVAS                 mLogCanvas = {
   OC_EDITOR_CANVAS_REVISION,
   LogCanvasBegin,
   LogCanvasEnd,
