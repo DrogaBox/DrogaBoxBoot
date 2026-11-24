@@ -22,6 +22,7 @@
 #include <Library/OcPngLib.h>
 #include <Library/OcStorageLib.h>
 #include <Library/OcMiscLib.h>
+#include <Library/PrintLib.h>
 
 #include "../OpenCanopy.h"
 #include "../BmfLib.h"
@@ -1120,6 +1121,22 @@ InternalBootPickerRightScrollPtrEvent (
 
 STATIC GUI_IMAGE  mVersionLabelImage;
 
+//
+// The line of help under the entries (countdown and keys) and the name of the project at the
+// bottom left. Dimmed text, so that the entries stay what the eye goes to.
+//
+#define BOOT_HELP_LABEL_SPACE     14U
+#define BOOT_HELP_LABEL_OPACITY   0xB8U
+#define BOOT_BRAND_LABEL_SPACE    24U
+#define BOOT_BRAND_LABEL_OPACITY  0x70U
+#define BOOT_HELP_NAME_MAX        24U
+#define BOOT_HELP_NO_COUNTDOWN    MAX_UINT32
+
+STATIC GUI_IMAGE     mHelpLabelImage;
+STATIC GUI_IMAGE     mBrandLabelImage;
+STATIC UINT32        mHelpShownSeconds = BOOT_HELP_NO_COUNTDOWN;
+STATIC CONST CHAR16  *mHelpDefaultName;
+
 VOID
 InternalVersionLabelDraw (
   IN OUT GUI_OBJ                  *This,
@@ -1147,6 +1164,74 @@ InternalVersionLabelDraw (
       Height
       );
   }
+}
+
+STATIC
+VOID
+InternalDimLabelDraw (
+  IN     CONST GUI_IMAGE      *Image,
+  IN     UINT8                Dim,
+  IN OUT GUI_DRAWING_CONTEXT  *DrawContext,
+  IN     INT64                BaseX,
+  IN     INT64                BaseY,
+  IN     UINT32               OffsetX,
+  IN     UINT32               OffsetY,
+  IN     UINT32               Width,
+  IN     UINT32               Height,
+  IN     UINT8                Opacity
+  )
+{
+  if ((Image->Buffer == NULL) || (OffsetX >= Image->Width) || (OffsetY >= Image->Height)) {
+    return;
+  }
+
+  GuiDrawToBuffer (
+    Image,
+    (UINT8)((Opacity * Dim) / 0xFF),
+    DrawContext,
+    BaseX,
+    BaseY,
+    OffsetX,
+    OffsetY,
+    MIN (Width, Image->Width - OffsetX),
+    MIN (Height, Image->Height - OffsetY)
+    );
+}
+
+STATIC
+VOID
+InternalHelpLabelDraw (
+  IN OUT GUI_OBJ                  *This,
+  IN OUT GUI_DRAWING_CONTEXT      *DrawContext,
+  IN     BOOT_PICKER_GUI_CONTEXT  *Context,
+  IN     INT64                    BaseX,
+  IN     INT64                    BaseY,
+  IN     UINT32                   OffsetX,
+  IN     UINT32                   OffsetY,
+  IN     UINT32                   Width,
+  IN     UINT32                   Height,
+  IN     UINT8                    Opacity
+  )
+{
+  InternalDimLabelDraw (&mHelpLabelImage, BOOT_HELP_LABEL_OPACITY, DrawContext, BaseX, BaseY, OffsetX, OffsetY, Width, Height, Opacity);
+}
+
+STATIC
+VOID
+InternalBrandLabelDraw (
+  IN OUT GUI_OBJ                  *This,
+  IN OUT GUI_DRAWING_CONTEXT      *DrawContext,
+  IN     BOOT_PICKER_GUI_CONTEXT  *Context,
+  IN     INT64                    BaseX,
+  IN     INT64                    BaseY,
+  IN     UINT32                   OffsetX,
+  IN     UINT32                   OffsetY,
+  IN     UINT32                   Width,
+  IN     UINT32                   Height,
+  IN     UINT8                    Opacity
+  )
+{
+  InternalDimLabelDraw (&mBrandLabelImage, BOOT_BRAND_LABEL_OPACITY, DrawContext, BaseX, BaseY, OffsetX, OffsetY, Width, Height, Opacity);
 }
 
 VOID
@@ -1371,12 +1456,40 @@ GLOBAL_REMOVE_IF_UNREFERENCED GUI_OBJ_CHILD  mBootPickerVersionLabel = {
   NULL
 };
 
+STATIC GUI_OBJ_CHILD  mBootPickerHelpLabel = {
+  {
+    0, 0, 0, 0, 0xFF,
+    InternalHelpLabelDraw,
+    NULL,
+    GuiObjDelegatePtrEvent,
+    NULL,
+    0,
+    NULL
+  },
+  NULL
+};
+
+STATIC GUI_OBJ_CHILD  mBootPickerBrandLabel = {
+  {
+    0, 0, 0, 0, 0xFF,
+    InternalBrandLabelDraw,
+    NULL,
+    GuiObjDelegatePtrEvent,
+    NULL,
+    0,
+    NULL
+  },
+  NULL
+};
+
 STATIC GUI_OBJ_CHILD  *mBootPickerViewChildren[] = {
   &mBootPickerContainer,
   &mCommonActionButtonsContainer,
   &mBootPickerLeftScroll.Hdr,
   &mBootPickerRightScroll.Hdr,
-  &mBootPickerVersionLabel
+  &mBootPickerVersionLabel,
+  &mBootPickerHelpLabel,
+  &mBootPickerBrandLabel
 };
 
 STATIC GUI_OBJ_CHILD  *mBootPickerViewChildrenMinimal[] = {
@@ -1950,6 +2063,150 @@ InternalBootPickerAnimateTimeout (
   return FALSE;
 }
 
+STATIC
+BOOLEAN
+InternalMakeTextLabel (
+  OUT GUI_IMAGE                      *Image,
+  IN  CONST BOOT_PICKER_GUI_CONTEXT  *GuiContext,
+  IN  CONST CHAR16                   *Text
+  )
+{
+  if (Image->Buffer != NULL) {
+    FreePool (Image->Buffer);
+  }
+
+  ZeroMem (Image, sizeof (*Image));
+  if (!GuiGetLabel (Image, &GuiContext->FontContext, Text, StrLen (Text), GuiContext->LightBackground)) {
+    ZeroMem (Image, sizeof (*Image));
+    return FALSE;
+  }
+
+  return TRUE;
+}
+
+/**
+  Lay out the line of help under the entries, with the countdown when Remaining is not
+  BOOT_HELP_NO_COUNTDOWN, and ask for it to be drawn.
+**/
+STATIC
+VOID
+InternalUpdateHelpLabel (
+  IN OUT GUI_DRAWING_CONTEXT            *DrawContext,
+  IN     CONST BOOT_PICKER_GUI_CONTEXT  *GuiContext,
+  IN     UINT32                         Remaining
+  )
+{
+  CHAR16  Text[160];
+  CHAR16  Name[BOOT_HELP_NAME_MAX + 2];
+  UINTN   NameLength;
+  INT64   OldX;
+  UINT32  OldWidth;
+  INT64   NewX;
+  UINT32  NewWidth;
+
+  Text[0] = CHAR_NULL;
+  if ((Remaining != BOOT_HELP_NO_COUNTDOWN) && (mHelpDefaultName != NULL)) {
+    //
+    // The font has ASCII only: anything else in a name is left out of this line (the entry
+    // itself shows the name as it is).
+    //
+    NameLength = 0;
+    while (mHelpDefaultName[NameLength] != CHAR_NULL && NameLength < BOOT_HELP_NAME_MAX) {
+      Name[NameLength] = (mHelpDefaultName[NameLength] >= 0x20 && mHelpDefaultName[NameLength] < 0x7F)
+                         ? mHelpDefaultName[NameLength] : L'?';
+      ++NameLength;
+    }
+
+    Name[NameLength] = CHAR_NULL;
+    UnicodeSPrint (Text, sizeof (Text), L"%s starts in %u s        ", Name, Remaining);
+  }
+
+  StrCatS (Text, ARRAY_SIZE (Text), L"Enter  start");
+  if (GuiContext->PickerContext->AllowSetDefault) {
+    StrCatS (Text, ARRAY_SIZE (Text), L"        Ctrl+Enter  make default");
+  }
+
+  if (GuiContext->PickerContext->ShowEditor != NULL) {
+    StrCatS (Text, ARRAY_SIZE (Text), L"        F2  options");
+  }
+
+  OldX     = mBootPickerHelpLabel.Obj.OffsetX;
+  OldWidth = mBootPickerHelpLabel.Obj.Width;
+
+  if (!InternalMakeTextLabel (&mHelpLabelImage, GuiContext, Text)) {
+    DEBUG ((DEBUG_INFO, "OCUI: Help line not drawn\n"));
+  }
+
+  mHelpShownSeconds = Remaining;
+
+  NewWidth = mHelpLabelImage.Width;
+  NewX     = ((INT64)DrawContext->Screen.Width - NewWidth) / 2;
+  if (NewX < 0) {
+    NewX = 0;
+  }
+
+  mBootPickerHelpLabel.Obj.OffsetX = NewX;
+  mBootPickerHelpLabel.Obj.OffsetY = mBootPickerContainer.Obj.OffsetY + mBootPickerContainer.Obj.Height
+                                     + BOOT_HELP_LABEL_SPACE * GuiContext->Scale;
+  mBootPickerHelpLabel.Obj.Width  = MIN (NewWidth, DrawContext->Screen.Width);
+  mBootPickerHelpLabel.Obj.Height = mHelpLabelImage.Height;
+
+  //
+  // Redraw the area of the old line and of the new one.
+  //
+  if (OldWidth > 0) {
+    GuiRequestDrawCrop (DrawContext, OldX, mBootPickerHelpLabel.Obj.OffsetY, OldWidth, mBootPickerHelpLabel.Obj.Height);
+  }
+
+  if (mBootPickerHelpLabel.Obj.Width > 0) {
+    GuiRequestDrawCrop (
+      DrawContext,
+      mBootPickerHelpLabel.Obj.OffsetX,
+      mBootPickerHelpLabel.Obj.OffsetY,
+      mBootPickerHelpLabel.Obj.Width,
+      mBootPickerHelpLabel.Obj.Height
+      );
+  }
+}
+
+/**
+  Keep the countdown of the help line in step with the timeout, and drop it when the timeout
+  is cancelled (any key or the pointer).
+**/
+STATIC
+BOOLEAN
+InternalBootPickerAnimateHelp (
+  IN     BOOT_PICKER_GUI_CONTEXT  *Context,
+  IN OUT GUI_DRAWING_CONTEXT      *DrawContext,
+  IN     UINT64                   CurrentTime
+  )
+{
+  UINT32  Remaining;
+
+  if (DrawContext->TimeOutSeconds == 0) {
+    if (mHelpShownSeconds != BOOT_HELP_NO_COUNTDOWN) {
+      InternalUpdateHelpLabel (DrawContext, DrawContext->GuiContext, BOOT_HELP_NO_COUNTDOWN);
+    }
+
+    return TRUE;
+  }
+
+  Remaining = DrawContext->TimeOutSeconds > DrawContext->TimeOutElapsedSeconds
+              ? DrawContext->TimeOutSeconds - DrawContext->TimeOutElapsedSeconds
+              : 0;
+  if (Remaining != mHelpShownSeconds) {
+    InternalUpdateHelpLabel (DrawContext, DrawContext->GuiContext, Remaining);
+  }
+
+  return FALSE;
+}
+
+STATIC GUI_ANIMATION  mBootPickerHelpAnimation = {
+  { NULL, NULL },
+  NULL,
+  InternalBootPickerAnimateHelp
+};
+
 STATIC GUI_ANIMATION  mBootPickerIntroAnimation = {
   { NULL, NULL },
   NULL,
@@ -2104,6 +2361,27 @@ BootPickerViewInitialize (
     mBootPickerVersionLabel.Obj.OffsetY = DrawContext->Screen.Height - ((5 * mBootPickerVersionLabel.Obj.Height) / 2);
   }
 
+  //
+  // The name of the project, bottom left.
+  //
+  if (InternalMakeTextLabel (&mBrandLabelImage, GuiContext, L"DrogaBoxBoot, made by DrogaBox")) {
+    mBootPickerBrandLabel.Obj.Width   = mBrandLabelImage.Width;
+    mBootPickerBrandLabel.Obj.Height  = mBrandLabelImage.Height;
+    mBootPickerBrandLabel.Obj.OffsetX = BOOT_BRAND_LABEL_SPACE * GuiContext->Scale;
+    mBootPickerBrandLabel.Obj.OffsetY = (INT64)DrawContext->Screen.Height - mBrandLabelImage.Height - BOOT_BRAND_LABEL_SPACE * GuiContext->Scale;
+  } else {
+    mBootPickerBrandLabel.Obj.Width  = 0;
+    mBootPickerBrandLabel.Obj.Height = 0;
+  }
+
+  //
+  // The help line is laid out once the default entry is known (late initialisation).
+  //
+  mHelpDefaultName                = NULL;
+  mHelpShownSeconds               = BOOT_HELP_NO_COUNTDOWN;
+  mBootPickerHelpLabel.Obj.Width  = 0;
+  mBootPickerHelpLabel.Obj.Height = 0;
+
   // TODO: animations should be tied to UI objects, not global
   // Each object has its own list of animations.
   // How to animate addition of one or more boot entries?
@@ -2190,6 +2468,17 @@ BootPickerViewLateInitialize (
   BootEntry = InternalGetVolumeEntry (DefaultIndex);
   InternalStartAnimateLabel (DrawContext, BootEntry);
   GuiContext->BootEntry = BootEntry->Context;
+
+  mHelpDefaultName = ((OC_BOOT_ENTRY *)BootEntry->Context)->Name;
+  InternalUpdateHelpLabel (
+    DrawContext,
+    GuiContext,
+    DrawContext->TimeOutSeconds > 0 ? DrawContext->TimeOutSeconds : BOOT_HELP_NO_COUNTDOWN
+    );
+  if (DrawContext->TimeOutSeconds > 0) {
+    InitializeListHead (&mBootPickerHelpAnimation.Link);
+    InsertHeadList (&DrawContext->Animations, &mBootPickerHelpAnimation.Link);
+  }
 }
 
 VOID
@@ -2204,6 +2493,18 @@ BootPickerViewDeinitialize (
     FreePool (mVersionLabelImage.Buffer);
     mVersionLabelImage.Buffer = NULL;
   }
+
+  if (mHelpLabelImage.Buffer != NULL) {
+    FreePool (mHelpLabelImage.Buffer);
+  }
+
+  if (mBrandLabelImage.Buffer != NULL) {
+    FreePool (mBrandLabelImage.Buffer);
+  }
+
+  ZeroMem (&mHelpLabelImage, sizeof (mHelpLabelImage));
+  ZeroMem (&mBrandLabelImage, sizeof (mBrandLabelImage));
+  mHelpDefaultName = NULL;
 
   for (Index = 0; Index < mBootPicker.Hdr.Obj.NumChildren; ++Index) {
     InternalBootPickerEntryDestruct (InternalGetVolumeEntry (Index));

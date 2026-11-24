@@ -15,7 +15,7 @@
 #include "Blending.h"
 
 #define PIXEL_TO_UINT32(Pixel)  \
-  ((UINT32) SIGNATURE_32 ((Pixel)->Blue, (Pixel)->Green, (Pixel)->Red, (Pixel)->Reserved))
+  ((UINT32) SIGNATURE_32 ((UINT32) (Pixel)->Blue, (UINT32) (Pixel)->Green, (UINT32) (Pixel)->Red, (UINT32) (Pixel)->Reserved))
 
 #define RGB_ALPHA_BLEND(Back, Front, InvFrontOpacity)  \
   ((Front) + RGB_APPLY_OPACITY (InvFrontOpacity, Back))

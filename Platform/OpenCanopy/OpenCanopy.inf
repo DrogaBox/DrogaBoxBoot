@@ -76,6 +76,7 @@
   OcConsoleLib
   OcMiscLib
   OcPngLib
+  PrintLib
   OcStorageLib
   ResetSystemLib
   TimerLib

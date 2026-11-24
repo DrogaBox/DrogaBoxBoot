@@ -133,6 +133,10 @@ typedef struct _BOOT_PICKER_GUI_CONTEXT {
   BOOLEAN                                UseMenuEaseIn;
   BOOLEAN                                ReadyToBoot;
   UINT8                                  Scale;
+  ///
+  /// Draw at Scale into a virtual screen 4/3 the real size (see GuiOutputCanZoom).
+  ///
+  BOOLEAN                                Zoom;
   UINT8                                  VoAction;
   INT32                                  CursorOffsetX;
   INT32                                  CursorOffsetY;

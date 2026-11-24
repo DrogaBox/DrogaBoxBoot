@@ -16,9 +16,19 @@ typedef struct GUI_OUTPUT_CONTEXT_   GUI_OUTPUT_CONTEXT;
 typedef struct GUI_POINTER_CONTEXT_  GUI_POINTER_CONTEXT;
 typedef struct GUI_KEY_CONTEXT_      GUI_KEY_CONTEXT;
 
+/**
+  Whether the screen suits zoom: 2x artwork drawn into a virtual screen 4/3 the
+  real size, which looks like 1.5x (for example on a 1080p screen).
+**/
+BOOLEAN
+GuiOutputCanZoom (
+  VOID
+  );
+
 GUI_OUTPUT_CONTEXT *
 GuiOutputConstruct (
-  IN UINT32  Scale
+  IN UINT32   Scale,
+  IN BOOLEAN  Zoom
   );
 
 EFI_STATUS

@@ -314,3 +314,75 @@ GuiCreateDarkenedImage (
 
   return EFI_SUCCESS;
 }
+
+EFI_STATUS
+GuiCreateScaledImage (
+  OUT GUI_IMAGE       *ScaledImage,
+  IN CONST GUI_IMAGE  *SourceImage,
+  IN UINT32           Width,
+  IN UINT32           Height
+  )
+{
+  EFI_GRAPHICS_OUTPUT_BLT_PIXEL        *Buffer;
+  CONST EFI_GRAPHICS_OUTPUT_BLT_PIXEL  *P00;
+  CONST EFI_GRAPHICS_OUTPUT_BLT_PIXEL  *P01;
+  CONST EFI_GRAPHICS_OUTPUT_BLT_PIXEL  *P10;
+  CONST EFI_GRAPHICS_OUTPUT_BLT_PIXEL  *P11;
+  UINT32                               X;
+  UINT32                               Y;
+  UINT32                               SrcX;
+  UINT32                               SrcY;
+  UINT32                               FracX;
+  UINT32                               FracY;
+  UINT32                               NextX;
+  UINT32                               NextY;
+  UINTN                                Channel;
+  UINT32                               Top;
+  UINT32                               Bottom;
+
+  ASSERT (ScaledImage != NULL);
+  ASSERT (SourceImage != NULL);
+  ASSERT (SourceImage->Buffer != NULL);
+
+  if ((Width == 0) || (Height == 0) || (SourceImage->Width == 0) || (SourceImage->Height == 0)) {
+    return EFI_INVALID_PARAMETER;
+  }
+
+  Buffer = AllocatePool ((UINTN)Width * Height * sizeof (*Buffer));
+  if (Buffer == NULL) {
+    return EFI_OUT_OF_RESOURCES;
+  }
+
+  //
+  // Bilinear, with pixel centres mapped onto each other (8 bits of fraction).
+  //
+  for (Y = 0; Y < Height; ++Y) {
+    SrcY  = (UINT32)((((UINT64)Y * 2 + 1) * SourceImage->Height * 128) / Height);
+    SrcY  = SrcY > 128 ? SrcY - 128 : 0;
+    FracY = SrcY & 0xFF;
+    SrcY  = MIN (SrcY >> 8, SourceImage->Height - 1);
+    NextY = MIN (SrcY + 1, SourceImage->Height - 1);
+    for (X = 0; X < Width; ++X) {
+      SrcX  = (UINT32)((((UINT64)X * 2 + 1) * SourceImage->Width * 128) / Width);
+      SrcX  = SrcX > 128 ? SrcX - 128 : 0;
+      FracX = SrcX & 0xFF;
+      SrcX  = MIN (SrcX >> 8, SourceImage->Width - 1);
+      NextX = MIN (SrcX + 1, SourceImage->Width - 1);
+      P00   = &SourceImage->Buffer[SrcY * SourceImage->Width + SrcX];
+      P01   = &SourceImage->Buffer[SrcY * SourceImage->Width + NextX];
+      P10   = &SourceImage->Buffer[NextY * SourceImage->Width + SrcX];
+      P11   = &SourceImage->Buffer[NextY * SourceImage->Width + NextX];
+      for (Channel = 0; Channel < 4; ++Channel) {
+        Top    = ((CONST UINT8 *)P00)[Channel] * (256 - FracX) + ((CONST UINT8 *)P01)[Channel] * FracX;
+        Bottom = ((CONST UINT8 *)P10)[Channel] * (256 - FracX) + ((CONST UINT8 *)P11)[Channel] * FracX;
+        ((UINT8 *)&Buffer[(UINTN)Y * Width + X])[Channel] = (UINT8)((Top * (256 - FracY) + Bottom * FracY + 32768) >> 16);
+      }
+    }
+  }
+
+  ScaledImage->Width  = Width;
+  ScaledImage->Height = Height;
+  ScaledImage->Buffer = Buffer;
+
+  return EFI_SUCCESS;
+}

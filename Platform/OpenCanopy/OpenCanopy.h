@@ -173,6 +173,10 @@ struct GUI_DRAWING_CONTEXT_ {
   UINT8                      Scale;
   UINT8                      CursorOpacity;
   UINT32                     TimeOutSeconds;
+  ///
+  /// Whole seconds since the draw loop started, for showing the countdown.
+  ///
+  UINT32                     TimeOutElapsedSeconds;
   UINT64                     FrameTime;
 };
 
@@ -342,6 +346,17 @@ GuiCreateDarkenedImage (
   OUT GUI_IMAGE       *DarkenedImage,
   IN CONST GUI_IMAGE  *SourceImage,
   IN UINT32           Factor
+  );
+
+/**
+  Create a copy of an image resized to Width x Height (bilinear).
+**/
+EFI_STATUS
+GuiCreateScaledImage (
+  OUT GUI_IMAGE       *ScaledImage,
+  IN CONST GUI_IMAGE  *SourceImage,
+  IN UINT32           Width,
+  IN UINT32           Height
   );
 
 typedef enum {

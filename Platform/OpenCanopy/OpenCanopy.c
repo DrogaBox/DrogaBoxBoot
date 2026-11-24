@@ -67,7 +67,7 @@ STATIC UINT32  mPointerOldDrawWidth  = 0;
 STATIC UINT32  mPointerOldDrawHeight = 0;
 
 #define PIXEL_TO_UINT32(Pixel)  \
-  ((UINT32) SIGNATURE_32 ((Pixel)->Blue, (Pixel)->Green, (Pixel)->Red, (Pixel)->Reserved))
+  ((UINT32) SIGNATURE_32 ((UINT32) (Pixel)->Blue, (UINT32) (Pixel)->Green, (UINT32) (Pixel)->Red, (UINT32) (Pixel)->Reserved))
 
 BOOLEAN
 GuiClipChildBounds (
@@ -853,7 +853,7 @@ GuiLibConstruct (
   INT64                                       CursorX;
   INT64                                       CursorY;
 
-  mOutputContext = GuiOutputConstruct (GuiContext->Scale);
+  mOutputContext = GuiOutputConstruct (GuiContext->Scale, GuiContext->Zoom);
   if (mOutputContext == NULL) {
     DEBUG ((DEBUG_WARN, "OCUI: Failed to initialise output\n"));
     return EFI_UNSUPPORTED;
@@ -1072,8 +1072,9 @@ GuiDrawLoop (
 
   ASSERT (DrawContext != NULL);
 
-  mNumValidDrawReqs      = 0;
-  DrawContext->FrameTime = 0;
+  mNumValidDrawReqs                  = 0;
+  DrawContext->FrameTime             = 0;
+  DrawContext->TimeOutElapsedSeconds = 0;
   HoldObject             = NULL;
   //
   // Clear previous inputs.
@@ -1335,6 +1336,12 @@ GuiDrawLoop (
         DrawContext->GuiContext->AudioPlaybackTimeout = -1;
       }
     }
+
+    DrawContext->TimeOutElapsedSeconds = (UINT32)DivU64x64Remainder (
+                                                   GetTimeInNanoSecond (NewLastTsc - LoopStartTsc),
+                                                   1000000000ULL,
+                                                   NULL
+                                                   );
 
     //
     // Exit early if reach timer timeout and timer isn't disabled due to key event

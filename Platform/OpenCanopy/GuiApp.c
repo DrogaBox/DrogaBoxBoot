@@ -10,6 +10,7 @@
 #include <IndustryStandard/AppleIcon.h>
 #include <Protocol/OcInterface.h>
 
+#include <Library/BaseMemoryLib.h>
 #include <Library/DebugLib.h>
 #include <Library/MemoryAllocationLib.h>
 #include <Library/OcBootManagementLib.h>
@@ -25,6 +26,7 @@
 #include "OpenCanopy.h"
 #include "BmfLib.h"
 #include "GuiApp.h"
+#include "GuiIo.h"
 
 GLOBAL_REMOVE_IF_UNREFERENCED BOOT_PICKER_GUI_CONTEXT  mGuiContext;
 
@@ -106,6 +108,14 @@ InternalContextDestruct (
 
   InternalSafeFreePool (Context->Background.Buffer);
   InternalSafeFreePool (Context->FontContext.FontImage.Buffer);
+
+  //
+  // Leave nothing behind, so that the context can be constructed again (at another scale).
+  //
+  ZeroMem (Context->Icons, sizeof (Context->Icons));
+  ZeroMem (Context->Labels, sizeof (Context->Labels));
+  ZeroMem (&Context->Background, sizeof (Context->Background));
+  ZeroMem (&Context->FontContext, sizeof (Context->FontContext));
 
   /*
   InternalSafeFreePool (Context->Poof[0].Buffer);
@@ -381,11 +391,13 @@ InternalGetFlavourIcon (
   return EFI_NOT_FOUND;
 }
 
+STATIC
 EFI_STATUS
-InternalContextConstruct (
+InternalContextConstructForScale (
   OUT BOOT_PICKER_GUI_CONTEXT  *Context,
   IN  OC_STORAGE_CONTEXT       *Storage,
-  IN  OC_PICKER_CONTEXT        *Picker
+  IN  OC_PICKER_CONTEXT        *Picker,
+  IN  UINT8                    Scale
   )
 {
   EFI_STATUS                         Status;
@@ -394,7 +406,6 @@ InternalContextConstruct (
   VOID                               *FontData;
   UINT32                             FontImageSize;
   UINT32                             FontDataSize;
-  UINTN                              UiScaleSize;
   UINT32                             Index;
   UINT32                             ImageWidth;
   UINT32                             ImageHeight;
@@ -403,23 +414,11 @@ InternalContextConstruct (
   BOOLEAN                            UseGenericLabel;
 
   ASSERT (Context != NULL);
+  ASSERT (Scale == 1 || Scale == 2);
 
-  Context->Scale = 1;
-  UiScaleSize    = sizeof (Context->Scale);
+  Context->Scale = Scale;
 
   UseGenericLabel = (Picker->PickerAttributes & OC_ATTR_USE_GENERIC_LABEL_IMAGE) != 0;
-
-  Status = gRT->GetVariable (
-                  APPLE_UI_SCALE_VARIABLE_NAME,
-                  &gAppleVendorVariableGuid,
-                  NULL,
-                  &UiScaleSize,
-                  (VOID *)&Context->Scale
-                  );
-
-  if (EFI_ERROR (Status) || (Context->Scale != 2)) {
-    Context->Scale = 1;
-  }
 
   Status = gBS->LocateProtocol (
                   &gEfiUserInterfaceThemeProtocolGuid,
@@ -437,6 +436,11 @@ InternalContextConstruct (
   if (AsciiStrCmp (Picker->PickerVariant, "Auto") == 0) {
     if (Context->BackgroundColor.Raw == APPLE_COLOR_LIGHT_GRAY) {
       Context->Prefix = "Acidanthera\\Chardonnay";
+    } else if (OcStorageExistsFileUnicode (Storage, OPEN_CORE_IMAGE_PATH L"DrogaBox\\AETHER\\Background.icns")) {
+      //
+      // The theme of DrogaBoxBoot, installed with it, for dark backgrounds.
+      //
+      Context->Prefix = "DrogaBox\\AETHER";
     } else {
       Context->Prefix = "Acidanthera\\GoldenGate";
     }
@@ -653,6 +657,75 @@ InternalContextConstruct (
   }
 
   return EFI_SUCCESS;
+}
+
+EFI_STATUS
+InternalContextConstruct (
+  OUT BOOT_PICKER_GUI_CONTEXT  *Context,
+  IN  OC_STORAGE_CONTEXT       *Storage,
+  IN  OC_PICKER_CONTEXT        *Picker
+  )
+{
+  EFI_STATUS  Status;
+  UINT8       Scale;
+  UINTN       UiScaleSize;
+  GUI_IMAGE   Background;
+
+  ASSERT (Context != NULL);
+
+  Scale       = 1;
+  UiScaleSize = sizeof (Scale);
+  Status      = gRT->GetVariable (
+                       APPLE_UI_SCALE_VARIABLE_NAME,
+                       &gAppleVendorVariableGuid,
+                       NULL,
+                       &UiScaleSize,
+                       (VOID *)&Scale
+                       );
+  if (EFI_ERROR (Status) || (Scale != 2)) {
+    Scale = 1;
+  }
+
+  Context->Zoom = FALSE;
+
+  //
+  // At scale 1 on a screen of about 1080p, the picker draws the 2x artwork into a
+  // virtual screen 4/3 the real size, which comes out as 1.5x: readable text and
+  // icons of 192 pixels, with all of the layout of OpenCanopy kept as it is.
+  // Themes without 2x artwork, and PickerAttributes with OC_ATTR_NO_ZOOM, keep 1x.
+  //
+  if (  (Scale == 1)
+     && ((Picker->PickerAttributes & OC_ATTR_NO_ZOOM) == 0)
+     && GuiOutputCanZoom ())
+  {
+    Status = InternalContextConstructForScale (Context, Storage, Picker, 2);
+    if (!EFI_ERROR (Status)) {
+      Context->Zoom = TRUE;
+      //
+      // The background is drawn as it is, centred: make it fill the virtual screen as it
+      // fills the real one.
+      //
+      if (Context->Background.Buffer != NULL) {
+        Status = GuiCreateScaledImage (
+                   &Background,
+                   &Context->Background,
+                   Context->Background.Width * 4 / 3,
+                   Context->Background.Height * 4 / 3
+                   );
+        if (!EFI_ERROR (Status)) {
+          FreePool (Context->Background.Buffer);
+          CopyMem (&Context->Background, &Background, sizeof (Background));
+        }
+      }
+
+      DEBUG ((DEBUG_INFO, "OCUI: Using 2x artwork with zoom\n"));
+      return EFI_SUCCESS;
+    }
+
+    DEBUG ((DEBUG_INFO, "OCUI: No 2x artwork for zoom - %r, using 1x\n", Status));
+  }
+
+  return InternalContextConstructForScale (Context, Storage, Picker, Scale);
 }
 
 CONST GUI_IMAGE *

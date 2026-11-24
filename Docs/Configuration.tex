@@ -3748,6 +3748,14 @@ the default boot entry choice will remain changed until the next manual reconfig
 
   \emph{Note}: These same animations, plus additional animations whose information is provided
   by voice-over, are automatically disabled when \texttt{PickerAudioAssist} is enabled.
+  \item \texttt{0x0400} --- \texttt{OC\_ATTR\_NO\_ZOOM}, keep the \texttt{OpenCanopy} picker at
+  scale 1 on screens of about 1080p. Without it, when \texttt{UIScale} gives scale 1, the screen is at
+  least 1000 pixels high, below 4 million pixels and its sides divide by 3 (for example 1920x1080 or
+  1680x1050), and the theme has 2x images, \texttt{OpenCanopy} draws the 2x images into a virtual screen
+  4/3 the size of the real one and shrinks each block of 4x4 pixels to 3x3 on the way out. Icons and text
+  come out at 1.5x, so labels are readable and six entries still fit in one row. Themes without 2x
+  images stay at scale 1 by themselves. \texttt{UIScale}, and with it the scale macOS uses when it
+  starts, is not changed.
   \end{itemize}
 
 \item
@@ -3869,7 +3877,9 @@ the default boot entry choice will remain changed until the next manual reconfig
     \item \texttt{Auto} --- Automatically select one set of icons based on the \texttt{background-color}
       and \texttt{DefaultBackground} colours: \texttt{Acidanthera\textbackslash GoldenGate} for Syrah Black and
       \texttt{Acidanthera\textbackslash Chardonnay} for Light Gray. \texttt{background-color} variable has
-      priority.
+      priority. For Syrah Black (and other dark colours), \texttt{DrogaBox\textbackslash AETHER} is used
+      instead of \texttt{Acidanthera\textbackslash GoldenGate} when it is installed, as it is by the
+      DrogaBoxBoot package.
     \item \texttt{Default} --- \texttt{Acidanthera\textbackslash GoldenGate}.
   \end{itemize}
 

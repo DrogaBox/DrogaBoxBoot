@@ -13,6 +13,8 @@ OpenCore Changelog
 - Added `Kexts` item to the options editor: all kexts of `Kernel` -> `Add` in the load order, switching them on and off, moving them with `+` and `-`, and a check of the order with `OSBundleLibraries` of the kexts, which `F5` can fix
 - Added `Config file` item to the options editor to choose between `config.plist`, `config2.plist` and any other `config*.plist` file of the OpenCore directory, for a single start or until changed, similar to Clover
 - Added source ranges of parsed elements to OcXmlLib (`XmlNodeSourceRange`)
+- Added 1.5x drawing of OpenCanopy on screens of about 1080p (2x images shrunk on output), with `OC_ATTR_NO_ZOOM` (`0x0400`) in `PickerAttributes` to keep scale 1
+- Added a line of help with the countdown under the entries, names under the restart and shut down buttons, and the project name to OpenCanopy
 
 #### v1.0.8
 - Fixed macrecovery utility on Windows, thx @pzhlkj6612

@@ -143,6 +143,10 @@ package() {
       mkdir -p "${dstdir}/${arch}/${dir}" || exit 1
     done
 
+    # copy the DrogaBoxBoot theme, which PickerVariant Auto picks when present.
+    mkdir -p "${dstdir}/${arch}/EFI/OC/Resources/Image/DrogaBox/AETHER" || exit 1
+    cp "${selfdir}/DrogaBox/Theme/AETHER/"*.icns "${dstdir}/${arch}/EFI/OC/Resources/Image/DrogaBox/AETHER"/ || exit 1
+
     # copy OpenCore main program.
     cp "${arch}/OpenCore.efi" "${dstdir}/${arch}/EFI/OC" || exit 1
     printf "%s" "OpenCore" > "${dstdir}/${arch}/EFI/OC/.contentFlavour" || exit 1

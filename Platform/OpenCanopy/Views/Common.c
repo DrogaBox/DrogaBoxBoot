@@ -6,8 +6,11 @@
 
 #include "../OpenCanopy.h"
 #include "../GuiApp.h"
+#include "../BmfLib.h"
 
 #include <Library/BaseLib.h>
+#include <Library/BaseMemoryLib.h>
+#include <Library/MemoryAllocationLib.h>
 #include <Library/UefiRuntimeServicesTableLib.h>
 #include <Library/ResetSystemLib.h>
 
@@ -543,11 +546,141 @@ InternalCommonRestartPtrEvent (
   return This;
 }
 
+//
+// Names under the action buttons, as on the startup screen of a Mac.
+//
+#define COMMON_ACTION_LABEL_SPACE    6U
+#define COMMON_ACTION_LABEL_OPACITY  0xD0U
+
+STATIC GUI_IMAGE  mCommonRestartLabel;
+STATIC GUI_IMAGE  mCommonShutDownLabel;
+
+STATIC
+VOID
+InternalCommonDrawActionLabel (
+  IN     CONST GUI_IMAGE      *Label,
+  IN     CONST GUI_OBJ        *Button,
+  IN OUT GUI_DRAWING_CONTEXT  *DrawContext,
+  IN     INT64                BaseX,
+  IN     INT64                BaseY,
+  IN     UINT32               OffsetX,
+  IN     UINT32               OffsetY,
+  IN     UINT32               Width,
+  IN     UINT32               Height,
+  IN     UINT8                Opacity
+  )
+{
+  INT64   LabelX;
+  INT64   Left;
+  INT64   Right;
+  UINT32  CropX;
+  UINT32  CropWidth;
+
+  if ((Label->Buffer == NULL) || (Label->Height == 0)) {
+    return;
+  }
+
+  //
+  // Centre the name under its button; draw only what falls into the requested rectangle.
+  //
+  LabelX = Button->OffsetX + ((INT64)Button->Width - (INT64)Label->Width) / 2;
+  Left   = MAX ((INT64)OffsetX, LabelX);
+  Right  = MIN ((INT64)OffsetX + Width, LabelX + Label->Width);
+  if ((Right <= Left) || (OffsetY >= Label->Height)) {
+    return;
+  }
+
+  CropX     = (UINT32)(Left - LabelX);
+  CropWidth = (UINT32)(Right - Left);
+  GuiDrawToBuffer (
+    Label,
+    (UINT8)((Opacity * COMMON_ACTION_LABEL_OPACITY) / 0xFF),
+    DrawContext,
+    BaseX + LabelX,
+    BaseY,
+    CropX,
+    OffsetY,
+    CropWidth,
+    MIN (Height, Label->Height - OffsetY)
+    );
+}
+
+STATIC
+VOID
+InternalCommonActionLabelsDraw (
+  IN OUT GUI_OBJ                  *This,
+  IN OUT GUI_DRAWING_CONTEXT      *DrawContext,
+  IN     BOOT_PICKER_GUI_CONTEXT  *Context,
+  IN     INT64                    BaseX,
+  IN     INT64                    BaseY,
+  IN     UINT32                   OffsetX,
+  IN     UINT32                   OffsetY,
+  IN     UINT32                   Width,
+  IN     UINT32                   Height,
+  IN     UINT8                    Opacity
+  )
+{
+  //
+  // This object spans the width of the container, so button offsets apply as they are.
+  //
+  InternalCommonDrawActionLabel (&mCommonRestartLabel, &mCommonRestart.Hdr.Obj, DrawContext, BaseX, BaseY, OffsetX, OffsetY, Width, Height, Opacity);
+  InternalCommonDrawActionLabel (&mCommonShutDownLabel, &mCommonShutDown.Hdr.Obj, DrawContext, BaseX, BaseY, OffsetX, OffsetY, Width, Height, Opacity);
+}
+
+STATIC
+GUI_OBJ *
+InternalCommonActionLabelsPtrEvent (
+  IN OUT GUI_OBJ                  *This,
+  IN OUT GUI_DRAWING_CONTEXT      *DrawContext,
+  IN     BOOT_PICKER_GUI_CONTEXT  *Context,
+  IN     INT64                    BaseX,
+  IN     INT64                    BaseY,
+  IN     CONST GUI_PTR_EVENT      *Event
+  )
+{
+  return NULL;
+}
+
+STATIC GUI_OBJ_CHILD  mCommonActionLabels = {
+  {
+    0, 0, 0, 0, 0xFF,
+    InternalCommonActionLabelsDraw,
+    NULL,
+    InternalCommonActionLabelsPtrEvent,
+    NULL,
+    0,
+    NULL
+  },
+  &mCommonActionButtonsContainer.Obj
+};
+
+STATIC
+VOID
+InternalCommonMakeLabel (
+  OUT GUI_IMAGE                      *Label,
+  IN  CONST BOOT_PICKER_GUI_CONTEXT  *GuiContext,
+  IN  CONST CHAR16                   *Text
+  )
+{
+  if (Label->Buffer != NULL) {
+    FreePool (Label->Buffer);
+  }
+
+  ZeroMem (Label, sizeof (*Label));
+  if (!GuiGetLabel (Label, &GuiContext->FontContext, Text, StrLen (Text), GuiContext->LightBackground)) {
+    ZeroMem (Label, sizeof (*Label));
+  }
+}
+
 extern GUI_OBJ_CHILD  mCommonFocus;
 
 STATIC GUI_OBJ_CHILD  *mCommonActionButtonsContainerChildren[] = {
   &mCommonRestart.Hdr,
   &mCommonShutDown.Hdr,
+  &mCommonActionLabels,
+  //
+  // The focus ring must stay last: it is shown by counting it in NumChildren.
+  //
   &mCommonFocus
 };
 
@@ -725,8 +858,23 @@ CommonViewInitialize (
   mCommonShutDown.ImageId         = ICON_SHUT_DOWN;
   mCommonShutDown.ImageState      = ICON_TYPE_BASE;
 
+  InternalCommonMakeLabel (&mCommonRestartLabel, GuiContext, L"Restart");
+  InternalCommonMakeLabel (&mCommonShutDownLabel, GuiContext, L"Shut Down");
+
   mCommonActionButtonsContainer.Obj.Width   = RestartWidth + ShutDownWidth + BOOT_ACTION_BUTTON_SPACE * GuiContext->Scale;
   mCommonActionButtonsContainer.Obj.Height  = MAX (RestartHeight, ShutDownHeight);
+
+  //
+  // The names go under the buttons; widen the container if a name is wider than its button.
+  //
+  mCommonActionLabels.Obj.OffsetX = 0;
+  mCommonActionLabels.Obj.OffsetY = (INT64)mCommonActionButtonsContainer.Obj.Height + COMMON_ACTION_LABEL_SPACE * GuiContext->Scale;
+  mCommonActionLabels.Obj.Width   = mCommonActionButtonsContainer.Obj.Width;
+  mCommonActionLabels.Obj.Height  = MAX (mCommonRestartLabel.Height, mCommonShutDownLabel.Height);
+  if (mCommonActionLabels.Obj.Height > 0) {
+    mCommonActionButtonsContainer.Obj.Height += COMMON_ACTION_LABEL_SPACE * GuiContext->Scale + mCommonActionLabels.Obj.Height;
+  }
+
   mCommonActionButtonsContainer.Obj.OffsetX = (DrawContext->Screen.Width - mCommonActionButtonsContainer.Obj.Width) / 2;
   mCommonActionButtonsContainer.Obj.OffsetY = DrawContext->Screen.Height - mCommonActionButtonsContainer.Obj.Height - BOOT_ACTION_BUTTON_SPACE * GuiContext->Scale;
 }
