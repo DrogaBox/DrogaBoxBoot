@@ -1,32 +1,32 @@
 #!/bin/bash
 #
-# Moves our branch (`deluxe`) onto a newer official OpenCore commit.
+# Moves our branch (`main`) onto a newer official OpenCore commit.
 #
-#   Deluxe/update-base.sh [<official commit or ref>] [--no-build] [--keep]
+#   DrogaBox/update-base.sh [<official commit or ref>] [--no-build] [--keep]
 #
 # Default target: upstream/master (the official acidanthera/OpenCorePkg).
 #
 # What it does, in order:
 #   1. fetches the official repository (remote `upstream`);
-#   2. makes a SEPARATE worktree (../deluxe-next) on a new branch `deluxe-next` at the target;
-#   3. replays our commits (everything between the pinned official commit in Deluxe/BASE.md and
-#      `deluxe`) on it, one by one, keeping the original authors. A conflict in Changelog.md only
+#   2. makes a SEPARATE worktree (../drogabox-next) on a new branch `drogabox-next` at the target;
+#   3. replays our commits (everything between the pinned official commit in DrogaBox/BASE.md and
+#      `main`) on it, one by one, keeping the original authors. A conflict in Changelog.md only
 #      is resolved by keeping both sides; any other conflict stops the script;
 #   4. runs the editor tests (normal and SANITIZE=1) and builds OpenCore RELEASE and DEBUG
 #      (skip the build with --no-build);
-#   5. only if all of that passed: writes the new pin to Deluxe/BASE.md, commits it, saves the
-#      old tip of `deluxe` as the tag `deluxe-before-<date>-<short>` and moves `deluxe` to the new one.
+#   5. only if all of that passed: writes the new pin to DrogaBox/BASE.md, commits it, saves the
+#      old tip of `main` as the tag `before-base-<date>-<short>` and moves `main` to the new one.
 #
 # The working branch is not touched until step 5, so a failure never leaves it half rebased:
-# the whole attempt lives in ../deluxe-next, which is left in place for inspection (use
-# `git worktree remove --force ../deluxe-next; git branch -D deluxe-next` to throw it away; the next
+# the whole attempt lives in ../drogabox-next, which is left in place for inspection (use
+# `git worktree remove --force ../drogabox-next; git branch -D drogabox-next` to throw it away; the next
 # run does it by itself).
 #
 # Never writes to an EFI. Needs nasm and mtoc in PATH for the build.
 #
 set -u
 
-die() { echo; echo "STOPPED: $*" >&2; echo "The branch 'deluxe' was not changed." >&2; exit 1; }
+die() { echo; echo "STOPPED: $*" >&2; echo "The branch 'main' was not changed." >&2; exit 1; }
 
 TARGET=upstream/master
 BUILD=1
@@ -41,16 +41,16 @@ done
 
 cd "$(dirname "$0")/.." || exit 1
 MAIN=$(pwd)
-WT="$(dirname "$MAIN")/deluxe-next"
-WORK=deluxe
-NEXT=deluxe-next
+WT="$(dirname "$MAIN")/drogabox-next"
+WORK=main
+NEXT=drogabox-next
 
 [ "$(git rev-parse --abbrev-ref HEAD)" = "$WORK" ] || die "check out '$WORK' first (now on $(git rev-parse --abbrev-ref HEAD))"
 [ -z "$(git status --porcelain --untracked-files=no)" ] || die "uncommitted changes in $MAIN; commit or stash them first"
 git remote get-url upstream >/dev/null 2>&1 || die "no remote 'upstream' (git remote add upstream https://github.com/acidanthera/OpenCorePkg.git)"
 
-OLD_BASE=$(sed -n 's/^official_commit: *\([0-9a-f]\{40\}\).*/\1/p' Deluxe/BASE.md | head -1)
-[ -n "$OLD_BASE" ] || die "official_commit not found in Deluxe/BASE.md"
+OLD_BASE=$(sed -n 's/^official_commit: *\([0-9a-f]\{40\}\).*/\1/p' DrogaBox/BASE.md | head -1)
+[ -n "$OLD_BASE" ] || die "official_commit not found in DrogaBox/BASE.md"
 git merge-base --is-ancestor "$OLD_BASE" "$WORK" || die "the pinned commit $OLD_BASE is not an ancestor of $WORK"
 
 echo "== fetching the official repository"
@@ -100,7 +100,7 @@ for c in $COMMITS; do
 done
 
 echo "== editor tests"
-UDK_PATH="$MAIN/UDK" Deluxe/run-tests.sh || die "the editor tests fail on the new base (worktree kept in $WT)"
+UDK_PATH="$MAIN/UDK" DrogaBox/run-tests.sh || die "the editor tests fail on the new base (worktree kept in $WT)"
 
 if [ "$BUILD" = 1 ]; then
   echo "== building OpenCore (RELEASE + DEBUG)"
@@ -120,27 +120,27 @@ fi
 echo "== all passed; pinning the new base"
 NEW_DATE=$(git log -1 --format=%cs "$NEW_BASE")
 NEW_TITLE=$(git log -1 --format=%s "$NEW_BASE")
-python3 -I - "$NEW_BASE" "$NEW_DATE" "$NEW_TITLE" "$(date +%Y-%m-%d)" <<'PY' || die "cannot rewrite Deluxe/BASE.md"
+python3 -I - "$NEW_BASE" "$NEW_DATE" "$NEW_TITLE" "$(date +%Y-%m-%d)" <<'PY' || die "cannot rewrite DrogaBox/BASE.md"
 import re, sys
 base, date, title, today = sys.argv[1:5]
-s = open('Deluxe/BASE.md').read()
+s = open('DrogaBox/BASE.md').read()
 s = re.sub(r'^official_commit: .*$', 'official_commit: ' + base, s, flags=re.M)
 s = re.sub(r'^official_date: .*$', 'official_date:   ' + date, s, flags=re.M)
 s = re.sub(r'^official_title: .*$', 'official_title:  ' + title, s, flags=re.M)
 s = re.sub(r'^pinned_on: .*$', 'pinned_on:       ' + today, s, flags=re.M)
-open('Deluxe/BASE.md', 'w').write(s)
+open('DrogaBox/BASE.md', 'w').write(s)
 PY
-git add Deluxe/BASE.md && git commit -q -m "Pin official base $(git rev-parse --short "$NEW_BASE")" || die "cannot commit the new pin"
+git add DrogaBox/BASE.md && git commit -q -m "Pin official base $(git rev-parse --short "$NEW_BASE")" || die "cannot commit the new pin"
 NEW_TIP=$(git rev-parse HEAD)
 
 cd "$MAIN" || exit 1
 OLD_TIP=$(git rev-parse "$WORK")
-TAG="deluxe-before-$(date +%Y%m%d-%H%M%S)-$(git rev-parse --short "$OLD_BASE")"
+TAG="before-base-$(date +%Y%m%d-%H%M%S)-$(git rev-parse --short "$OLD_BASE")"
 git tag "$TAG" "$OLD_TIP" || die "cannot save the old tip"
 git reset -q --hard "$NEW_TIP" || die "cannot move $WORK (old tip saved as $TAG)"
 if [ "$BUILD" = 1 ]; then
   # Keep the zips of the verified build next to the checkout (they are of the commit before the pin commit,
-  # which only changes Deluxe/BASE.md).
+  # which only changes DrogaBox/BASE.md).
   DEST="$(dirname "$MAIN")/builds/$(git rev-parse --short "$NEW_TIP")"
   mkdir -p "$DEST" && cp "$WT"/Binaries/*.zip "$DEST"/ && ( cd "$DEST" && shasum -a 256 ./*.zip > SHA256SUMS )
 fi

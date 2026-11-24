@@ -1,7 +1,7 @@
 #!/bin/bash
 #
 # Builds and runs the host tests of the picker editor, normal and with sanitizers.
-#   Deluxe/run-tests.sh [--no-sanitize]
+#   DrogaBox/run-tests.sh [--no-sanitize]
 # Needs the UDK (UDK_PATH, ../UDK by default: the one build_oc.tool fetches).
 # Nothing here touches any EFI or any file outside this checkout.
 #
@@ -16,7 +16,7 @@ SAN=1
 [ "${1:-}" = "--no-sanitize" ] && SAN=0
 JOBS=$(getconf _NPROCESSORS_ONLN)
 FAIL=0
-LOG=$(mktemp "${TMPDIR:-/tmp}/deluxe-test.XXXXXX")
+LOG=$(mktemp "${TMPDIR:-/tmp}/drogabox-test.XXXXXX")
 
 run_one() { # dir, binary, args, sanitize(0/1)
   local dir=$1 bin=$2 args=$3 san=$4 label out rc
