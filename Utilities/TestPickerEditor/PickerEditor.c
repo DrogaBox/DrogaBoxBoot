@@ -52,11 +52,21 @@ STATIC UINT32  mChecks;
 // ---------------------------------------------------------------------------------
 //
 
-#define SCREEN_COLUMNS  80
-#define SCREEN_ROWS     25
+//
+// The console is 80x25 unless a test sets another size. The largest is the one OpenCore's own
+// renderer (BuiltinGraphics, 8x16 font) makes on a 1920x1080 screen at scale 1.
+//
+#define SCREEN_MAX_COLUMNS  240
+#define SCREEN_MAX_ROWS     67
 
-STATIC CHAR16                           mScreen[SCREEN_ROWS][SCREEN_COLUMNS + 1];
-STATIC UINT8                            mScreenAttr[SCREEN_ROWS][SCREEN_COLUMNS];
+STATIC UINTN  mScreenColumns = 80;
+STATIC UINTN  mScreenRows    = 25;
+
+#define SCREEN_COLUMNS  mScreenColumns
+#define SCREEN_ROWS     mScreenRows
+
+STATIC CHAR16                           mScreen[SCREEN_MAX_ROWS][SCREEN_MAX_COLUMNS + 1];
+STATIC UINT8                            mScreenAttr[SCREEN_MAX_ROWS][SCREEN_MAX_COLUMNS];
 STATIC UINTN                            mCursorColumn;
 STATIC UINTN                            mCursorRow;
 STATIC UINTN                            mAttribute;
@@ -123,6 +133,17 @@ FakeOutputString (
     if ((String[Prefix] == L':') && (String[Prefix + 1] == L' ')) {
       return EFI_SUCCESS;
     }
+  }
+
+  //
+  // A failed ASSERT of the libraries is printed here before the abort: show it on the host too.
+  //
+  if ((String[0] == L'A') && (String[1] == L'S') && (String[2] == L'S') && (String[3] == L'E')) {
+    for (Prefix = 0; String[Prefix] != L'\0'; ++Prefix) {
+      putchar ((int)(String[Prefix] < 0x80 ? String[Prefix] : '?'));
+    }
+
+    fflush (stdout);
   }
 
   for ( ; *String != L'\0'; ++String) {
@@ -320,7 +341,7 @@ DumpScreen (
   VOID
   )
 {
-  CHAR8  Buffer[SCREEN_ROWS * (SCREEN_COLUMNS + 1) + 1];
+  CHAR8  Buffer[SCREEN_MAX_ROWS * (SCREEN_MAX_COLUMNS + 1) + 1];
 
   ScreenText (Buffer, sizeof (Buffer));
   printf ("----- screen -----\n%s------------------\n", Buffer);
@@ -330,7 +351,7 @@ DumpScreen (
 // Screen text at the end of the last wait for a key, as the screen is cleared when the editor leaves.
 //
 STATIC CHAR8  mSnapshot[8 * 1024 * 1024];
-STATIC CHAR8  mLastKeySnapshot[SCREEN_ROWS * (SCREEN_COLUMNS + 1) + 1];
+STATIC CHAR8  mLastKeySnapshot[SCREEN_MAX_ROWS * (SCREEN_MAX_COLUMNS + 1) + 1];
 
 STATIC
 BOOLEAN
@@ -3377,7 +3398,7 @@ OnScreenNow (
   IN CONST CHAR8  *Text
   )
 {
-  CHAR8  Buffer[SCREEN_ROWS * (SCREEN_COLUMNS + 1) + 1];
+  CHAR8  Buffer[SCREEN_MAX_ROWS * (SCREEN_MAX_COLUMNS + 1) + 1];
 
   ScreenText (Buffer, sizeof (Buffer));
   return strstr (Buffer, Text) != NULL;
@@ -4707,6 +4728,294 @@ ShowKexts (
   DumpScreen ();
 }
 
+//
+// ---------------------------------------------------------------------------------
+// Console sizes, long names and a broken config.
+// ---------------------------------------------------------------------------------
+//
+
+/**
+  With PICKER_TEST_SCREENS=<directory>, keep the screen as <directory>/<size>-<menu item>.txt.
+**/
+STATIC
+VOID
+SaveScreen (
+  IN CONST CHAR8  *SizeName,
+  IN UINTN        Item
+  )
+{
+  CHAR8  Path[512];
+  CHAR8  Buffer[SCREEN_MAX_ROWS * (SCREEN_MAX_COLUMNS + 1) + 1];
+  FILE   *File;
+
+  if (getenv ("PICKER_TEST_SCREENS") == NULL) {
+    return;
+  }
+
+  ScreenText (Buffer, sizeof (Buffer));
+  AsciiSPrint (Path, sizeof (Path), "%a/%a-%02u.txt", getenv ("PICKER_TEST_SCREENS"), SizeName, (UINT32)Item);
+  File = fopen (Path, "w");
+  if (File != NULL) {
+    fputs (Buffer, File);
+    fclose (File);
+  }
+}
+
+/**
+  Open every screen of the main menu at the console size in use, and look at it.
+  RunEditorToLook checks that nothing was written to the last column or row and that the console
+  never scrolled.
+**/
+STATIC
+VOID
+LookAtEveryScreen (
+  IN CONST CHAR8  *SizeName
+  )
+{
+  STATIC CONST UINTN  Items[] = {
+    MENU_ARGS,  MENU_FLAGS, MENU_CONFIG, MENU_KEXTS,   MENU_LISTS, MENU_QUIRKS,
+    MENU_CHECK, MENU_LOG,   MENU_PANIC,  MENU_COMPARE, MENU_CHOOSER
+  };
+  UINTN               Index;
+  UINT32              Before;
+
+  ScriptReset ();
+  RunEditorToLook ();
+  CHECK (OnScreenNow ("DrogaBoxBoot Options"));
+  CHECK (OnScreenNow ("Restart"));
+
+  for (Index = 0; Index < ARRAY_SIZE (Items); ++Index) {
+    Before = mFailures;
+    ScriptReset ();
+    Press (KeyDown, Items[Index]);
+    Press (KeyEnter, 1);
+    RunEditorToLook ();
+    SaveScreen (SizeName, Items[Index]);
+    //
+    // The log and the panic log, when there is nothing to show, say so over the main menu.
+    //
+    CHECK (
+      !OnScreenNow ("DrogaBoxBoot Options")
+      || (Items[Index] == MENU_COMPARE) || (Items[Index] == MENU_LOG) || (Items[Index] == MENU_PANIC)
+      );
+    if (mFailures != Before) {
+      printf ("  (console %s, main menu item %u)\n", SizeName, (unsigned)Items[Index]);
+      DumpScreen ();
+    }
+  }
+
+  //
+  // And out again without anything written.
+  //
+  ScriptReset ();
+  Press (KeyDown, MENU_CONFIG);
+  Press (KeyEnter, 1);
+  Press (KeyEsc, 2);
+  RUN_EDITOR (NULL);
+}
+
+STATIC
+VOID
+TestConsoleSizes (
+  IN CONST VOID  *Original,
+  IN UINT32      Size
+  )
+{
+  STATIC CONST UINTN  Sizes[][2] = {
+    { 80,  25 },
+    { 100, 30 },
+    { 128, 40 },
+    { 240, 67 }
+  };
+  UINTN               Index;
+  CHAR8               Name[16];
+  VOID                *After;
+  UINT32              AfterSize;
+
+  WriteTestFile ("config.plist", Original, Size);
+
+  for (Index = 0; Index < ARRAY_SIZE (Sizes); ++Index) {
+    mScreenColumns = Sizes[Index][0];
+    mScreenRows    = Sizes[Index][1];
+    AsciiSPrint (Name, sizeof (Name), "%ux%u", (UINT32)mScreenColumns, (UINT32)mScreenRows);
+    LookAtEveryScreen (Name);
+  }
+
+  mScreenColumns = 80;
+  mScreenRows    = 25;
+
+  //
+  // Looking changes nothing.
+  //
+  After = ReadTestFile ("config.plist", &AfterSize);
+  CHECK (After != NULL && AfterSize == Size && memcmp (After, Original, Size) == 0);
+  if (After != NULL) {
+    FreePool (After);
+  }
+}
+
+/**
+  The config with Lilu's comment replaced by Comment.
+**/
+STATIC
+VOID
+WriteConfigWithComment (
+  IN CONST CHAR8  *Original,
+  IN UINT32       Size,
+  IN CONST CHAR8  *Comment
+  )
+{
+  CONST CHAR8  *Old;
+  CONST CHAR8  *At;
+  CHAR8        *Text;
+  UINTN        Length;
+
+  Old = "<string>Patch engine</string>";
+  At  = strstr (Original, Old);
+  CHECK (At != NULL);
+  if (At == NULL) {
+    return;
+  }
+
+  Length = Size + AsciiStrLen (Comment) + 32;
+  Text   = AllocateZeroPool (Length);
+  CopyMem (Text, Original, (UINTN)(At - Original));
+  AsciiSPrint (Text + (At - Original), Length - (UINTN)(At - Original), "<string>%a</string>%a", Comment, At + AsciiStrLen (Old));
+  WriteTestFile ("config.plist", Text, (UINT32)AsciiStrLen (Text));
+  FreePool (Text);
+}
+
+STATIC
+VOID
+TestLongNames (
+  IN CONST VOID  *Original,
+  IN UINT32      Size
+  )
+{
+  CHAR8    Comment[701];
+  CHAR8    Name[OC_CONFIG_MAX_NAME + 1];
+  UINTN    Index;
+  UINTN    Length;
+  BOOLEAN  Restarted;
+
+  //
+  // A comment far wider than any console, in the kexts list and in the config tree.
+  //
+  for (Index = 0; Index < sizeof (Comment) - 1; ++Index) {
+    Comment[Index] = (CHAR8)('a' + Index % 26);
+  }
+
+  Comment[sizeof (Comment) - 1] = '\0';
+  WriteConfigWithComment (Original, Size, Comment);
+
+  ScriptReset ();
+  Press (KeyDown, MENU_KEXTS);
+  Press (KeyEnter, 1);
+  RunEditorToLook ();
+  CHECK (OnScreenNow ("Lilu.kext   abcdefghij"));
+
+  ScriptReset ();
+  Enter ((CONST CHAR8 *[]) { "Kernel", "Add", "#0", "Comment" }, 4);
+  RunEditorToLook ();
+  CHECK (OnScreenNow ("abcdefghijklmnopqrstuvwxyz"));
+
+  mScreenColumns = 240;
+  mScreenRows    = 67;
+  ScriptReset ();
+  Press (KeyDown, MENU_KEXTS);
+  Press (KeyEnter, 1);
+  RunEditorToLook ();
+  CHECK (OnScreenNow ("Lilu.kext   abcdefghij"));
+  mScreenColumns = 80;
+  mScreenRows    = 25;
+
+  WriteTestFile ("config.plist", Original, Size);
+
+  //
+  // The longest config name there can be, in the chooser and on the main menu once chosen.
+  //
+  AsciiStrCpyS (Name, sizeof (Name), "config-");
+  Length = OC_CONFIG_MAX_NAME - AsciiStrLen (".plist");
+  for (Index = AsciiStrLen (Name); Index < Length; ++Index) {
+    Name[Index] = (CHAR8)('A' + Index % 26);
+  }
+
+  Name[Index] = '\0';
+  AsciiStrCatS (Name, sizeof (Name), ".plist");
+  CHECK (AsciiStrLen (Name) == OC_CONFIG_MAX_NAME);
+  WriteConfigVariant (Name, 1, TRUE);
+  RemoveTestFile ("config.choice");
+
+  ScriptReset ();
+  Press (KeyDown, MENU_CHOOSER);
+  Press (KeyEnter, 1);
+  RunEditorToLook ();
+  CHECK (OnScreenNow ("config-HIJKLMN"));
+
+  ScriptReset ();
+  Press (KeyDown, MENU_CHOOSER);
+  Press (KeyEnter, 1);
+  Press (KeyDown, 1);
+  Press (KeyEnter, 1);
+  Press (KeyEnter, 1);                 // This time only
+  RUN_EDITOR (&Restarted);
+  CHECK (Restarted);
+  RemoveTestFile ("config.choice");
+  RemoveTestFile (Name);
+}
+
+STATIC
+VOID
+TestBrokenConfig (
+  IN CONST VOID  *Original,
+  IN UINT32      Size
+  )
+{
+  STATIC CONST CHAR8  *Broken[] = {
+    "",
+    "not a plist at all",
+    "<?xml version=\"1.0\" encoding=\"UTF-8\"?><plist version=\"1.0\"><dict><key>Kernel</key><dict>",
+    "<?xml version=\"1.0\" encoding=\"UTF-8\"?><plist version=\"1.0\"><array/></plist>"
+  };
+  UINTN               Index;
+  UINTN               Item;
+  VOID                *After;
+  UINT32              AfterSize;
+  BOOLEAN             Restarted;
+  STATIC CONST UINTN  Items[] = { MENU_CONFIG, MENU_KEXTS, MENU_LISTS, MENU_QUIRKS, MENU_CHECK, MENU_COMPARE, MENU_FLAGS };
+
+  for (Index = 0; Index < ARRAY_SIZE (Broken); ++Index) {
+    for (Item = 0; Item < ARRAY_SIZE (Items); ++Item) {
+      WriteTestFile ("config.plist", Broken[Index], (UINT32)AsciiStrLen (Broken[Index]));
+      ScriptReset ();
+      Press (KeyDown, Items[Item]);
+      Press (KeyEnter, 1);
+      Press (KeyEnter, 1);
+      Press (KeyF10, 1);
+      Press (KeyEnter, 1);
+      Press (KeyEsc, 6);
+      RUN_EDITOR (&Restarted);
+      CHECK (!Restarted);
+
+      //
+      // Nothing is written over a file that cannot be read.
+      //
+      AfterSize = 0;
+      After     = ReadTestFile ("config.plist", &AfterSize);
+      CHECK (After != NULL);
+      CHECK (AfterSize == AsciiStrLen (Broken[Index]));
+      CHECK (After == NULL || memcmp (After, Broken[Index], AfterSize) == 0);
+      if (After != NULL) {
+        FreePool (After);
+      }
+
+      CHECK (ReadTestFile ("config.plist.bak", &AfterSize) == NULL);
+    }
+  }
+
+  WriteTestFile ("config.plist", Original, Size);
+}
+
 int
 ENTRY_POINT (
   int   argc,
@@ -4775,6 +5084,9 @@ ENTRY_POINT (
   TestCheckAndLog (Original, Size);
   TestCompareAndUndo (Original, Size);
   TestPanicLog ();
+  TestConsoleSizes (Original, Size);
+  TestLongNames (Original, Size);
+  TestBrokenConfig (Original, Size);
   free (Original);
 
   printf ("%u checks, %u failures\n", mChecks, mFailures);

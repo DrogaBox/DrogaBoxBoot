@@ -63,7 +63,7 @@ for the build, `nasm` and `mtoc` in `PATH`.
 ## Tests and build
 
 ```
-DrogaBox/run-tests.sh              # TestPickerEditor (1193 checks) and TestEditPlist (84455), plain and SANITIZE=1
+DrogaBox/run-tests.sh              # TestPickerEditor (1669 checks) and TestEditPlist (84455), plain and SANITIZE=1
 ARCHS=X64 TARGETS=RELEASE,DEBUG TOOLCHAINS=XCODE5 ./build_oc.tool
 ```
 

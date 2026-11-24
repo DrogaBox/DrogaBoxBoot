@@ -91,7 +91,8 @@ Every change is a commit on top of the official base (`git log ebea824..main`). 
   a signed int into the sign bit, which UBSan flags.
 
 **OpenCore (`Library/OcMainLib`, `Include`)**
-- The F2 editor, config chooser and kexts screen (`OpenCoreEditor.c`, `OpenCoreConfigSelect.c`,
+- The F2 editor, config chooser and kexts screen (`OpenCoreEditor*.c`, one file per screen,
+  `OpenCoreConfigSelect.c`,
   `OpenCoreKextOrder.c`, `OpenCoreEditPlist.c`, `OpenCoreNvram.c`) come from Illia Haidai's two
   commits. On top of them I changed the title and the drawing layer below.
 - `OpenCoreEditorUi.c`: the editor draws through a small interface (`OC_EDITOR_CANVAS` in
@@ -110,9 +111,11 @@ Every change is a commit on top of the official base (`git log ebea824..main`). 
 **Tests and tools**
 - `Utilities/TestCanopy` (new): runs the real OpenCanopy on a Mac with a fake 1920×1080 screen and
   scripted keys and dumps the frames. It can also replay what the editor drew and draw it on the sheet.
-- `Utilities/TestPickerEditor` and `Utilities/TestEditPlist`: 1193 checks for the editor and 84455 for
+- `Utilities/TestPickerEditor` and `Utilities/TestEditPlist`: 1669 checks for the editor (also at 80x25, 100x30, 128x40 and 240x67 consoles, with very long names and broken configs) and 84455 for
   the plist writer. They run plain and with ASan/UBSan through `DrogaBox/run-tests.sh`.
 - `DrogaBox/update-base.sh`: moves the fork to a newer OpenCore (see below).
+- [`DrogaBox/WRITES.md`](../DrogaBox/WRITES.md): what each save writes to the disk, and what a power cut
+  at each step would leave.
 
 ## Install
 
