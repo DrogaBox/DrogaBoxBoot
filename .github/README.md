@@ -13,7 +13,7 @@ Everything else is plain [acidanthera/OpenCorePkg](https://github.com/acidanther
 are separate commits on top, and a script moves them to each new OpenCore release.
 
 > [!NOTE]
-> Zips are in [Releases](../../releases). So far it has booted on one machine, mine (Ryzen 9 5900XT,
+> Zips are in [Releases](https://github.com/DrogaBox/DrogaBoxBoot/releases). So far it has booted on one machine, mine (Ryzen 9 5900XT,
 > RX 6800 XT, 1080p): try it from a USB stick first.
 
 ![The picker](../DrogaBox/screenshots/picker.png)
@@ -48,7 +48,8 @@ With the text picker it uses the console, like the rest of OpenCore. What it can
 - Kexts in load order. Turn them on and off, move them with `+` and `-`. It reads each kext's
   `OSBundleLibraries` and puts a `!` on any kext loaded before something it needs. `F5` fixes the order.
 - The whole `config.plist` as a tree. Saving keeps your formatting and comments, and the old file stays as
-  `config.plist.bak`.
+  `config.plist.bak`. If `config.plist` then doesn't load (say the power went out mid-save), OpenCore starts
+  with `config.plist.bak` instead of stopping before the picker, and `F2` tells you so. Not with a vault.
 - Several configs side by side (`config2.plist`, `config-test.plist`…). Pick one at boot, for good or for a
   single boot; after a single boot it goes back to `config.plist` on its own.
 - Drivers, ACPI, tools and patches on and off, quirks, a config check, the OpenCore log, the kernel panic
@@ -95,6 +96,9 @@ Every change is a commit on top of the official base (`git log ebea824..main`). 
   a signed int into the sign bit, which UBSan flags.
 
 **OpenCore (`Library/OcMainLib`, `Include`)**
+- `OpenCoreConfigSelect.c`: if `config.plist` doesn't load, try `config.plist.bak` (never with a vault).
+  A config that fails and is replaced by another one is logged as a warning, so `HaltLevel` doesn't stop
+  there; only the last failure is an error.
 - The F2 editor, config chooser and kexts screen (`OpenCoreEditor*.c`, `OpenCoreConfigSelect.c`,
   `OpenCoreKextOrder.c`, `OpenCoreEditPlist.c`, `OpenCoreNvram.c`) come from Illia Haidai's two
   commits. On top of them I changed the title and the drawing layer below, and split the editor into
@@ -115,7 +119,7 @@ Every change is a commit on top of the official base (`git log ebea824..main`). 
 **Tests and tools**
 - `Utilities/TestCanopy` (new): runs the real OpenCanopy on a Mac with a fake 1920×1080 screen and
   scripted keys and dumps the frames. It can also replay what the editor drew and draw it on the sheet.
-- `Utilities/TestPickerEditor` and `Utilities/TestEditPlist`: 1669 checks for the editor (also at 80x25, 100x30, 128x40 and 240x67 consoles, with very long names and broken configs) and 84455 for
+- `Utilities/TestPickerEditor` and `Utilities/TestEditPlist`: 1747 checks for the editor (also at 80x25, 100x30, 128x40 and 240x67 consoles, with very long names and broken configs) and 84455 for
   the plist writer. They run plain and with ASan/UBSan through `DrogaBox/run-tests.sh`.
 - `DrogaBox/update-base.sh`: moves the fork to a newer OpenCore (see below).
 - [`DrogaBox/WRITES.md`](../DrogaBox/WRITES.md): what each save writes to the disk, and what a power cut
@@ -131,7 +135,7 @@ hasn't changed since 1.0.8. The zip and `ocvalidate` say 1.0.9 because official 
 that number. If you're on 1.0.8, only the files below change. If you're older, update to 1.0.8 first the
 usual way.
 
-1. Get the zip from [Releases](../../releases), or [build it](#build).
+1. Get the zip from [Releases](https://github.com/DrogaBox/DrogaBoxBoot/releases), or [build it](#build).
 2. Copy your whole `EFI` folder to a FAT32 USB stick. Do the next steps on the stick, not on the disk.
 3. From the zip's `X64/EFI`, replace `OC/OpenCore.efi`, `OC/Drivers/OpenCanopy.efi` and
    `BOOT/BOOTx64.efi`. All three have to come from the same build. For the theme, also copy
