@@ -131,7 +131,8 @@ s = re.sub(r'^official_title: .*$', 'official_title:  ' + title, s, flags=re.M)
 s = re.sub(r'^pinned_on: .*$', 'pinned_on:       ' + today, s, flags=re.M)
 open('DrogaBox/BASE.md', 'w').write(s)
 PY
-git add DrogaBox/BASE.md && git commit -q -m "Pin official base $(git rev-parse --short "$NEW_BASE")" || die "cannot commit the new pin"
+git add DrogaBox/BASE.md || die "cannot stage the new pin"
+git commit -q -m "Pin official base $(git rev-parse --short "$NEW_BASE")" || die "cannot commit the new pin"
 NEW_TIP=$(git rev-parse HEAD)
 
 cd "$MAIN" || exit 1
