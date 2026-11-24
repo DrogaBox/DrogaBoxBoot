@@ -9,7 +9,7 @@ OBJS    = $(PROJECT).o
 #
 # From OpenCore, the code which is tested.
 #
-OBJS   += OpenCoreEditor.o OpenCoreEditorUi.o OpenCoreEditPlist.o OpenCoreKextOrder.o OpenCoreNvram.o OpenCoreConfigSelect.o
+OBJS   += OpenCoreEditor.o OpenCoreEditorBootArgs.o OpenCoreEditorBrowser.o OpenCoreEditorLists.o OpenCoreEditorQuirks.o OpenCoreEditorText.o OpenCoreEditorConfigs.o OpenCoreEditorUi.o OpenCoreEditPlist.o OpenCoreKextOrder.o OpenCoreNvram.o OpenCoreConfigSelect.o
 #
 # OcConfigurationLib targets, used to check that edited configuration still loads.
 #
