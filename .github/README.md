@@ -21,13 +21,17 @@ are separate commits on top, and a script moves them to each new OpenCore releas
 ## The picker
 
 Stock OpenCanopy draws 1080p at 1x, so the icons are small and the text is 10 px tall. This one draws the
-2x artwork and scales it down to 1.5x on output. Six entries fit in a row and the names are readable. Under
-the entries there's a countdown and the keys, and Restart and Shut Down have labels.
+2x artwork and scales it down to 1.5x on output, so icons and names come out half again as big and the
+names are readable. Under the entries there's a countdown and the keys, and Restart and Shut Down have
+labels.
 
-Any theme with 2x images gets this. To keep 1x, set bit `0x0400` in `PickerAttributes`.
+It kicks in with any theme that has 2x images, on screens at least 1000 px tall and under 4 megapixels
+whose width and height divide by 3: 1920×1080 and 1920×1200, for example. Smaller screens stay at 1x,
+and 4K keeps OpenCore's own 2x. To keep 1x, set bit `0x0400` in `PickerAttributes`.
 
-The zip comes with my theme, AETHER, and `PickerVariant` `Auto` picks it. The icons are the GoldenGate
-ones from [OcBinaryData](https://github.com/acidanthera/OcBinaryData); the background is mine.
+The zip comes with my theme, AETHER. `PickerVariant` `Auto` (the default) picks it, unless the firmware's
+background colour is light gray, which gets Chardonnay as before. The icons are the GoldenGate ones from
+[OcBinaryData](https://github.com/acidanthera/OcBinaryData); the background is mine.
 
 ## The F2 editor
 
@@ -91,17 +95,17 @@ Every change is a commit on top of the official base (`git log ebea824..main`). 
   a signed int into the sign bit, which UBSan flags.
 
 **OpenCore (`Library/OcMainLib`, `Include`)**
-- The F2 editor, config chooser and kexts screen (`OpenCoreEditor*.c`, one file per screen,
-  `OpenCoreConfigSelect.c`,
+- The F2 editor, config chooser and kexts screen (`OpenCoreEditor*.c`, `OpenCoreConfigSelect.c`,
   `OpenCoreKextOrder.c`, `OpenCoreEditPlist.c`, `OpenCoreNvram.c`) come from Illia Haidai's two
-  commits. On top of them I changed the title and the drawing layer below.
+  commits. On top of them I changed the title and the drawing layer below, and split the editor into
+  one file per screen without changing its code.
 - `OpenCoreEditorUi.c`: the editor draws through a small interface (`OC_EDITOR_CANVAS` in
   `OcBootManagementLib.h`: begin, end, clear, put text with a role, flush). It uses OpenCanopy's sheet
   when there is one and the text console otherwise.
 - `OcBootManagementLib.h`: `OC_ATTR_NO_ZOOM` (`0x0400`) in `PickerAttributes`, and the `EditorCanvas`
   field in the picker context.
-- `OcXmlLib.c`: source ranges of parsed nodes, so a save can rewrite only the values that changed and
-  keep your formatting.
+- `OcXmlLib.c` (also from Illia's commits): source ranges of parsed nodes, so a save can rewrite only
+  the values that changed and keep your formatting.
 
 **Theme, docs, packaging**
 - `DrogaBox/Theme/AETHER`: GoldenGate icons plus my background. `build_oc.tool` puts it in the zip under
@@ -119,26 +123,37 @@ Every change is a commit on top of the official base (`git log ebea824..main`). 
 
 ## Install
 
-Try it on a USB stick first and keep a copy of your `EFI` folder. This is your boot loader.
+This is your boot loader. A bad one means a machine that doesn't start, so don't touch the EFI you boot
+from until the new one has started your Mac from a USB stick.
+
+It's built on OpenCore 1.0.8 plus the official commits after it, up to `ebea824`. The config format
+hasn't changed since 1.0.8. The zip and `ocvalidate` say 1.0.9 because official master already carries
+that number. If you're on 1.0.8, only the files below change. If you're older, update to 1.0.8 first the
+usual way.
 
 1. Get the zip from [Releases](../../releases), or [build it](#build).
-2. From the zip's `X64/EFI/OC`, replace `OpenCore.efi` and `Drivers/OpenCanopy.efi`. Both have to come from
-   the same build. If your OpenCore is older than 1.0.9, update the rest of it first the usual way.
-   For the theme, also copy `Resources/Image/DrogaBox` and set `PickerMode` to `External`. The font in
-   `Resources/Font` comes from OcBinaryData, same as stock OpenCore.
-3. In `config.plist`, under `Misc > Security`, add:
+2. Copy your whole `EFI` folder to a FAT32 USB stick. Do the next steps on the stick, not on the disk.
+3. From the zip's `X64/EFI`, replace `OC/OpenCore.efi`, `OC/Drivers/OpenCanopy.efi` and
+   `BOOT/BOOTx64.efi`. All three have to come from the same build. For the theme, also copy
+   `OC/Resources/Image/DrogaBox` and set `PickerMode` to `External`. The zip has no font, same as stock
+   OpenCore: OpenCanopy needs `Resources/Font` from [OcBinaryData](https://github.com/acidanthera/OcBinaryData),
+   so copy it if you don't have it yet.
+4. In `config.plist`, under `Misc > Security`, add:
    ```xml
    <key>AllowPickerEdit</key>
    <true/>
    ```
-4. Run `Utilities/ocvalidate` from the same zip on your config.
-5. Restart and press `F2` at the picker.
+5. Run `Utilities/ocvalidate` from the same zip on that config. Stock `ocvalidate` doesn't know
+   `AllowPickerEdit` and reports it.
+6. Start from the stick (the firmware's boot menu) and press `F2` at the picker.
+7. Only once it starts macOS fine from the stick, keep a copy of your current `EFI` folder somewhere off
+   that partition and copy the stick's `EFI` over. Keep the stick: it's your way back.
 
-To undo, put your old `OpenCore.efi` and `OpenCanopy.efi` back, or set `AllowPickerEdit` to `false`.
-Stock OpenCore ignores that key.
+To undo, put your old `OpenCore.efi`, `OpenCanopy.efi` and `BOOTx64.efi` back, or set `AllowPickerEdit` to
+`false`. Stock OpenCore skips that key.
 
-With `Vault` set to `Secure`, the editor opens but can't change the config (the vault signature would stop
-matching), and only `config.plist` can be used.
+With a vault (`vault.plist`, as `Vault` `Basic` and `Secure` use), the editor opens but can't change the
+config, since it would no longer match the vault, and only `config.plist` can be used.
 
 ## Build
 
@@ -162,8 +177,8 @@ OC_RESOURCES=/path/to/OcBinaryData/Resources DrogaBox/run-tests.sh
 ## Keeping up with OpenCore
 
 The OpenCore commit this is built on is in [`DrogaBox/BASE.md`](../DrogaBox/BASE.md) (`ebea824` right now,
-between 1.0.8 and 1.0.9). `DrogaBox/update-base.sh` moves to the latest master, and
-`DrogaBox/update-base.sh 1.0.9` moves to a given tag. It replays my commits in a separate worktree, runs the
+1.0.8 plus 21 official commits). `DrogaBox/update-base.sh` moves to the latest master, and
+`DrogaBox/update-base.sh <tag>` moves to an official tag, such as 1.0.9 once it's out. It replays my commits in a separate worktree, runs the
 tests and builds. `main` only moves if all of that passes; on a conflict it stops and tells you the file.
 
 Versions look like `1.0.9-db.1`. The `opencore-version` in NVRAM keeps OpenCore's own format
