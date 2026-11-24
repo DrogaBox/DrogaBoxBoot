@@ -293,7 +293,7 @@ ConfigReadChoice (
         ++Index;
       }
 
-      if (ConfigIsKeepWord (&Data[Index], Size - Index)) {
+      if (ConfigIsKeepWord (&Data[Index], (UINT32)(Size - Index))) {
         *Persistent = TRUE;
         break;
       }
