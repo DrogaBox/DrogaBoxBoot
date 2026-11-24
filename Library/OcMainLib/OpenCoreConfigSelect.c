@@ -308,12 +308,29 @@ ConfigReadChoice (
   return Valid ? EFI_SUCCESS : EFI_INVALID_PARAMETER;
 }
 
+/**
+  Load and parse one configuration file.
+
+  Messages logged before the log is set up are kept and logged again once it is, with
+  Misc.Security.HaltLevel of the configuration that was loaded in the end. An error
+  about a file that OpenCore then replaces with another one would stop OpenCore right
+  there with the usual HaltLevel, so such a failure is only a warning.
+
+  @param[in]   Storage     OpenCore storage.
+  @param[in]   Name        Name of the configuration file.
+  @param[out]  Config      Configuration.
+  @param[in]   ErrorLevel  Level of the message when the file cannot be used.
+
+  @retval EFI_SUCCESS  The configuration was loaded.
+  @retval other        It could not be read or parsed.
+**/
 STATIC
 EFI_STATUS
 ConfigLoadFile (
   IN  OC_STORAGE_CONTEXT  *Storage,
   IN  CONST CHAR16        *Name,
-  OUT OC_GLOBAL_CONFIG    *Config
+  OUT OC_GLOBAL_CONFIG    *Config,
+  IN  UINTN               ErrorLevel
   )
 {
   EFI_STATUS  Status;
@@ -322,7 +339,7 @@ ConfigLoadFile (
 
   Data = OcStorageReadFileUnicode (Storage, Name, &Size);
   if (Data == NULL) {
-    DEBUG ((DEBUG_ERROR, "OC: Failed to load configuration %s!\n", Name));
+    DEBUG ((ErrorLevel, "OC: Failed to load configuration %s!\n", Name));
     return EFI_NOT_FOUND;
   }
 
@@ -332,7 +349,7 @@ ConfigLoadFile (
   FreePool (Data);
 
   if (EFI_ERROR (Status)) {
-    DEBUG ((DEBUG_ERROR, "OC: Failed to parse configuration %s!\n", Name));
+    DEBUG ((ErrorLevel, "OC: Failed to parse configuration %s!\n", Name));
   }
 
   return Status;
@@ -375,7 +392,7 @@ OcMiscLoadConfig (
     }
 
     if (!ConfigIsDefaultName (Chosen)) {
-      Status = ConfigLoadFile (Storage, Chosen, Config);
+      Status = ConfigLoadFile (Storage, Chosen, Config, DEBUG_WARN);
       if (!EFI_ERROR (Status)) {
         StrCpyS (mConfigName, ARRAY_SIZE (mConfigName), Chosen);
         mConfigSource = Persistent ? OcConfigSourceKept : OcConfigSourceOnce;
@@ -388,7 +405,10 @@ OcMiscLoadConfig (
     }
   }
 
-  Status = ConfigLoadFile (Storage, OPEN_CORE_CONFIG_PATH, Config);
+  //
+  // With a vault there is no backup to fall back to (see below).
+  //
+  Status = ConfigLoadFile (Storage, OPEN_CORE_CONFIG_PATH, Config, Storage->HasVault ? DEBUG_ERROR : DEBUG_WARN);
   if (!EFI_ERROR (Status) || Storage->HasVault) {
     return Status;
   }
@@ -400,11 +420,12 @@ OcMiscLoadConfig (
   //
   UnicodeSPrint (Backup, sizeof (Backup), L"%s%s", OPEN_CORE_CONFIG_PATH, OC_CONFIG_BACKUP_SUFFIX);
   DEBUG ((DEBUG_WARN, "OC: Cannot use %s - %r, trying %s\n", OPEN_CORE_CONFIG_PATH, Status, Backup));
-  if (!EFI_ERROR (ConfigLoadFile (Storage, Backup, Config))) {
+  if (!EFI_ERROR (ConfigLoadFile (Storage, Backup, Config, DEBUG_WARN))) {
     mConfigSource = OcConfigSourceBackup;
     return EFI_SUCCESS;
   }
 
+  DEBUG ((DEBUG_ERROR, "OC: Failed to load configuration %s and its backup - %r!\n", OPEN_CORE_CONFIG_PATH, Status));
   return Status;
 }
 
