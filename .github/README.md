@@ -13,8 +13,8 @@ Everything else is plain [acidanthera/OpenCorePkg](https://github.com/acidanther
 are separate commits on top, and a script moves them to each new OpenCore release.
 
 > [!NOTE]
-> The editor and the picker run in the test harnesses below, but this build hasn't been booted on real
-> hardware yet. There are no release zips until it has.
+> Zips are in [Releases](../../releases). So far it has booted on one machine, mine (Ryzen 9 5900XT,
+> RX 6800 XT, 1080p): try it from a USB stick first.
 
 ![The picker](../DrogaBox/screenshots/picker.png)
 
@@ -118,7 +118,7 @@ Every change is a commit on top of the official base (`git log ebea824..main`). 
 
 Try it on a USB stick first and keep a copy of your `EFI` folder. This is your boot loader.
 
-1. [Build it](#build).
+1. Get the zip from [Releases](../../releases), or [build it](#build).
 2. From the zip's `X64/EFI/OC`, replace `OpenCore.efi` and `Drivers/OpenCanopy.efi`. Both have to come from
    the same build. If your OpenCore is older than 1.0.9, update the rest of it first the usual way.
    For the theme, also copy `Resources/Image/DrogaBox` and set `PickerMode` to `External`. The font in
