@@ -1,7 +1,7 @@
 # What the editor writes, and what a power cut would leave
 
-Checked 2026-11-24 on the branch `d7-config-backup`, which starts with `config.plist.bak` when `config.plist`
-cannot be loaded. Read from the code and tested on the Mac (below).
+Checked 2026-11-24. OpenCore starts with `config.plist.bak` when `config.plist` cannot be loaded. Read
+from the code, tested on the Mac and in QEMU (below).
 
 ## Choosing a config (`OcMiscSetConfigChoice`, `OpenCoreConfigSelect.c`)
 
@@ -55,5 +55,17 @@ at every step of a save (with an old backup and with none) and of putting the ba
 `config.plist` missing and broken), and each time loads the config the way OpenCore does at start. It
 always gets a config, the old one or the new one. With the fallback at start taken out, 21 checks
 fail; with the editor allowed to write the backup while running from it, 4 fail.
+
+In QEMU (OVMF, TCG) with the real OpenCore.efi, RELEASE and DEBUG, `Target` 67 and `HaltLevel`
+0x80000000: a `config.plist` cut in half or missing, with a good backup, starts with the backup and
+the editor says so; without a backup it stops, saying that both failed; with a vault the backup is
+not used; "Undo the last save" writes `config.plist` back through the firmware's FAT driver and the
+next start loads it. A chosen config that cannot be loaded falls back to `config.plist`, with and
+without `keep`.
+
+Messages from before the log is set up are logged again once it is, with the `HaltLevel` of the
+config loaded in the end. So a failed file that is then replaced by another one is logged as a
+warning, not an error: as an error, the usual `HaltLevel` stopped OpenCore right after it had
+started with the backup or the default.
 
 None of it has been tried with a real power cut.
