@@ -37,6 +37,7 @@ pinned_on:       2026-11-24
 | `EDITOR.md` | The user guide of the `F2` editor |
 | `screenshots/` | Images for the README and the guide |
 | `Theme/AETHER` | The default theme, packaged into the zip (see `Theme/README.md`) |
+| `hfsplus.sh` | Puts Apple's `HfsPlus.efi` in the zip, from OcBinaryData at a fixed commit with its sha256 checked; falls back to `OpenHfsPlus.efi` |
 | `tools/` | `render-screen.swift` (text console to PNG) and `banner.swift` (README banner) |
 
 ## Moving to a newer official commit
@@ -68,6 +69,13 @@ ARCHS=X64 TARGETS=RELEASE,DEBUG TOOLCHAINS=XCODE5 ./build_oc.tool
 ```
 
 `build_oc.tool` downloads the UDK into `UDK/`, which git ignores.
+
+It also downloads Apple's `HfsPlus.efi` (X64) and `HfsPlus32.efi` (packaged as `HfsPlus.efi` for IA32)
+from OcBinaryData at `DB_HFSPLUS_COMMIT` in `hfsplus.sh` and checks their sha256. Offline, set
+`HFSPLUS_DIR=/path/to/OcBinaryData/Drivers`. Without either, the zip keeps only `OpenHfsPlus.efi`, its
+`Docs/Sample*.plist` are switched to it, and the build prints `FALLING BACK TO OpenHfsPlus.efi`. Build
+releases with `REQUIRE_HFSPLUS=1`, which stops instead. To move to a newer OcBinaryData, change the commit
+and both hashes together.
 
 ## Versions
 

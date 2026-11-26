@@ -252,6 +252,11 @@ package() {
     cp "${selfdir}/Docs/${doc}" "${dstdir}/Docs"/ || exit 1
   done
   cp "${selfdir}/Changelog.md" "${dstdir}/Docs"/ || exit 1
+
+  # Apple's HfsPlus.efi from OcBinaryData, or OpenHfsPlus.efi as the fallback (DrogaBox/hfsplus.sh).
+  # shellcheck source=DrogaBox/hfsplus.sh
+  source "${selfdir}/DrogaBox/hfsplus.sh" || exit 1
+  db_hfsplus_package "${dstdir}" "${ARCHS[@]}" || exit 1
   cp -r "${selfdir}/Docs/AcpiSamples/"* "${dstdir}/Docs/AcpiSamples"/ || exit 1
 
   mkdir -p "${dstdir}/Docs/AcpiSamples/Binaries" || exit 1
