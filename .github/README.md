@@ -115,6 +115,10 @@ Every change is a commit on top of the official base (`git log ebea824..main`). 
 - `DrogaBox/Theme/AETHER`: GoldenGate icons plus my background. `build_oc.tool` puts it in the zip under
   `Resources/Image/DrogaBox/AETHER`.
 - `Docs/Configuration.tex`: `AllowPickerEdit`, the editor, bit `0x0400` and AETHER with `Auto`.
+- `DrogaBox/hfsplus.sh`: the zip carries Apple's `HfsPlus.efi`, which `Sample.plist` already loads and
+  OpenCore's docs recommend. It's downloaded from OcBinaryData at a fixed commit and its sha256 checked,
+  never kept in this repo. `OpenHfsPlus.efi` stays in the zip too. Stock zips only have `OpenHfsPlus.efi`,
+  and on a Z790 board it froze the machine before the picker, keyboard dead; `HfsPlus.efi` booted fine.
 
 **Tests and tools**
 - `Utilities/TestCanopy` (new): runs the real OpenCanopy on a Mac with a fake 1920×1080 screen and
@@ -142,6 +146,8 @@ usual way.
    `OC/Resources/Image/DrogaBox` and set `PickerMode` to `External`. The zip has no font, same as stock
    OpenCore: OpenCanopy needs `Resources/Font` from [OcBinaryData](https://github.com/acidanthera/OcBinaryData),
    so copy it if you don't have it yet.
+   If your config loads `OpenHfsPlus.efi` under `UEFI > Drivers`, copy `OC/Drivers/HfsPlus.efi` from the
+   zip and change that entry's `Path` to `HfsPlus.efi`, the way `Docs/Sample.plist` has it.
 4. In `config.plist`, under `Misc > Security`, add:
    ```xml
    <key>AllowPickerEdit</key>
@@ -170,6 +176,11 @@ ARCHS=X64 TARGETS=RELEASE,DEBUG TOOLCHAINS=XCODE5 ./build_oc.tool
 ```
 
 The zips end up in `Binaries/`. The first run downloads the UDK into `UDK/`.
+
+Packaging downloads Apple's `HfsPlus.efi` from OcBinaryData (see `DrogaBox/hfsplus.sh` for the commit and
+sha256). Offline, point `HFSPLUS_DIR` at a copy of OcBinaryData's `Drivers` folder. If neither works, the
+build says `FALLING BACK TO OpenHfsPlus.efi`: that zip has no `HfsPlus.efi` and its sample configs load
+`OpenHfsPlus.efi` instead. `REQUIRE_HFSPLUS=1` makes that an error, which is how releases are built.
 
 Tests (the editor, the plist writer, and the picker and sheet drawn on the host, plain and with
 ASan/UBSan):
